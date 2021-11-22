@@ -7,7 +7,7 @@ One efficient and accurate strain-level identification tool based on reference g
 
 ---------------------------------------------------------------------------
 ### Dependencies:
-* Python ==3.7.4
+* Python ==3.7.x
 * R
 * Sibeliaz ==1.2.2 (https://github.com/medvedevgroup/SibeliaZ)
 * Required python package: numpy==1.17.3, pandas==1.0.1, biopython==1.74, scipy==1.3.1, sklearn==0.23.1
