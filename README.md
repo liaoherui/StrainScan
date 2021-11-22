@@ -10,7 +10,7 @@ One efficient and accurate strain-level identification tool based on reference g
 * Python ==3.7.x
 * R
 * Sibeliaz ==1.2.2 (https://github.com/medvedevgroup/SibeliaZ)
-* Required python package: numpy==1.17.3, pandas==1.0.1, biopython==1.74, scipy==1.3.1, sklearn==0.23.1
+* Required python package: numpy==1.17.3, pandas==1.0.1, biopython==1.74, scipy==1.3.1, sklearn==0.23.1, bidict==0.21.3
 
 Make sure these programs have been installed before using StrainScan. 
 
