@@ -21,6 +21,7 @@ Currently, you can install StrainScan mannually.
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
 `chmod 755 library/jellyfish-linux`<BR/>
+`chmod 755 library/dashing_s128`<BR/>
 ####
 
 ## Usage
