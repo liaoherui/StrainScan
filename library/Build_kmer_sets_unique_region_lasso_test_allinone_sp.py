@@ -66,7 +66,7 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 			intervals=math.ceil((len(resd))/uknum)
 			for i in range(0, len(resd), intervals):
 				kcount+=1
-				kmr=resd.items()[i][0]
+				kmr=list(resd.items())[i]
 				rev_kmr=seqpy.revcomp(kmr)
 				kid_match[kmr]=knum
 				kmatrix[knum][s-1]=1
