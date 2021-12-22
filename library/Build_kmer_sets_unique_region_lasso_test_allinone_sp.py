@@ -12,6 +12,7 @@ import Recls_withR_new
 import scipy.sparse as sp
 import numpy as np
 import gc
+import generate_kmer_with_sts_con_block
 
 def build_dir(input_dir):
 	if not os.path.exists(input_dir):
@@ -54,6 +55,7 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 				for i in range(len(seq)-k+1):
 					kmer=seq[i:i+k]
 					if len(dlabel[kmer])==1:
+						if re.search('N',kmer):continue
 						#duniq_num[s]+=1
 						resd[kmer]=''
 						resd[seqpy.revcomp(kmer)]=''
@@ -63,10 +65,11 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 		intervals=0
 		if len(resd)>uknum:
 			# We will sample unique k-mers according to the position and given value
+			if uknum==0:continue
 			intervals=math.ceil((len(resd))/uknum)
 			for i in range(0, len(resd), intervals):
 				kcount+=1
-				kmr=list(resd.items())[i]
+				kmr=list(resd.keys())[i]
 				rev_kmr=seqpy.revcomp(kmr)
 				kid_match[kmr]=knum
 				kmatrix[knum][s-1]=1
@@ -315,61 +318,63 @@ def count_dbs(lines,ksize):
 				d[blockid][rev_kmer][ele[1]]=''
 	return d
 
-def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix):
+def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas):
 	f=open(input_gb,'r')
 	lines=f.read().split('\n')
 	o=open(out_dir+'/all_kmer.fasta','w+')
 	#kmatrix=defaultdict(lambda:{}) # K-mer id -> Strain id -> '0' or '1'
 	#kid_match={}
 	#knum=1
-	c=1
-	#dk_match=defaultdict(lambda:{}) # Kmer ->  {strain1:'',strain2:''}
-	#dbs_count=count_dbs(lines,ksize)
-	dtotal_kmer={}
-	for line in lines:
-		if not line:continue
-		if line[0]=='a':
-			if c==1:
-				#dstrain={}
-				dtotal_kmer={}
-				#blockid=c
-				c+=1
-			else:
-				if len(dtotal_kmer)>0:
-					for k in dtotal_kmer:
-						if k in kid_match:continue
-						if len(dlabel[k])==1:continue
-						kid_match[k]=knum
-						#kmatrix[knum]=dict(zip(match_1,match_2))
-						for e in dlabel[k]:
-							kmatrix[knum][sid_match[label_match[e]]-1]=1
-						knum+=1
-				#dstrain={}
-				dtotal_kmer={}
-				blockid=c
-				c+=1
-				
-		if line[0]=='s':
-			ele=line.split()
-			#dstrain[ele[1]]=''
-			for i in range(len(ele[-1])-ksize+1):
-				kmer=ele[-1][i:i+ksize]
-				if not len(kmer)==ksize:continue
-				if re.search('N',kmer):continue
-				rev_kmer=seqpy.revcomp(kmer)
-				if not len(dlabel[kmer])==len(sid_match): 
-					dtotal_kmer[kmer]=''
-				if not len(dlabel[rev_kmer])==len(sid_match):
-					dtotal_kmer[rev_kmer]=''
-	if len(dtotal_kmer)>0:
-		for k in dtotal_kmer:
-			if k in kid_match:continue
-			if len(dlabel[k])==1:continue
-			kid_match[k]=knum
-			#kmatrix[knum]=dict(zip(match_1,match_2))
-			for e in dlabel[k]:
-				kmatrix[knum][sid_match[label_match[e]]-1]=1
-			knum+=1
+	if mas==0:
+		c=1
+		dtotal_kmer={}
+		for line in lines:
+			if not line:continue
+			if line[0]=='a':
+				if c==1:
+					#dstrain={}
+					dtotal_kmer={}
+					#blockid=c
+					c+=1
+				else:
+					if len(dtotal_kmer)>0:
+						for k in dtotal_kmer:
+							if k in kid_match:continue
+							if len(dlabel[k])==1:continue
+							kid_match[k]=knum
+							#kmatrix[knum]=dict(zip(match_1,match_2))
+							for e in dlabel[k]:
+								kmatrix[knum][sid_match[label_match[e]]-1]=1
+							knum+=1
+					#dstrain={}
+					dtotal_kmer={}
+					blockid=c
+					c+=1			
+			if line[0]=='s':
+				ele=line.split()
+				#dstrain[ele[1]]=''
+				for i in range(len(ele[-1])-ksize+1):
+					kmer=ele[-1][i:i+ksize]
+					if not len(kmer)==ksize:continue
+					if re.search('N',kmer):continue
+					rev_kmer=seqpy.revcomp(kmer)
+					if not len(dlabel[kmer])==len(sid_match): 
+						dtotal_kmer[kmer]=''
+					if not len(dlabel[rev_kmer])==len(sid_match):
+						dtotal_kmer[rev_kmer]=''
+		if len(dtotal_kmer)>0:
+			for k in dtotal_kmer:
+				if k in kid_match:continue
+				if len(dlabel[k])==1:continue
+				kid_match[k]=knum
+				#kmatrix[knum]=dict(zip(match_1,match_2))
+				for e in dlabel[k]:
+					kmatrix[knum][sid_match[label_match[e]]-1]=1
+				knum+=1
+	else:
+		#generate_kmer_with_mafft_con_block.extract_kmer_mugsy(input_gb,ksize,kid_match,kmatrix,knum,sid_match,dlabel,label_match)
+		generate_kmer_with_sts_con_block.extract_kmer_sts(input_gb,ksize,kid_match,kmatrix,knum,sid_match,dlabel,label_match)
+	# Finish k-mer searching part...
 	kc=1
 	dlabel={}
 	gc.collect()
@@ -518,7 +523,7 @@ def build_kmer_dict(d,k):
 	return dlabel,label_match
 
 
-def build_kmer_sets(d,out_dir,ksize,uknum,gkratio):
+def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas):
 	print('Now we will extract kmers from unique region found by sibeliaz')
 	#import multiprocessing
 	ksize=int(ksize)
@@ -596,7 +601,7 @@ def build_kmer_sets(d,out_dir,ksize,uknum,gkratio):
 		knum,kid_match,kmatrix=generate_kmer_match_from_uk(block_dir+'/alignment_unique.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,knum,kid_match,kmatrix,sid_match)
 		print('Partial Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix))
 		# K-mer matrix from global colinear block - Only mode/ All mode
-		generate_kmer_match_from_global(block_dir+'/alignment_global.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix)
+		generate_kmer_match_from_global(block_dir+'/alignment_global.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas)
 
 		
 		#find_unique_kmers_inside_cls(d[e],matrix_out,ksize,dlabel)
