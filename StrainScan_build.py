@@ -149,7 +149,7 @@ def main():
 	Build_overlap_matrix_sp.build_omatrix(fa_dir,new_cls_file,kmer_sets_l2+'/Kmer_Sets')
 
 	# --------- Delete tem dir ---------
-	#os.system('rm -rf '+kmer_sets_l2+'/Colinear_Block')
+	os.system('rm -rf '+kmer_sets_l2+'/Colinear_Block')
 	
 
 
