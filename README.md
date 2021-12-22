@@ -16,7 +16,7 @@ Make sure these programs have been installed before using StrainScan.
 
 ## Install (Linux or ubuntu only)
 
-Currently, yon can install StrainScan via Anaconda using the command below:<BR/>
+Currently, yon can install StrainScan via [Anaconda](https://anaconda.org/) using the command below:<BR/>
 ####
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
