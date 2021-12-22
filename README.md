@@ -15,7 +15,11 @@ One efficient and accurate strain-level composition analysis tool based on refer
 Make sure these programs have been installed before using StrainScan. 
 
 ## Install (Linux or ubuntu only)
-Currently, you can install StrainScan mannually.
+Currently, yon can install StrainScan via Anaconda using the command below:
+`conda env create -f environment.yaml`<BR/>
+`conda activate strainscan`<BR/>
+
+Or, you can install StrainScan mannually.
 
 ####
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
