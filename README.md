@@ -15,18 +15,21 @@ One efficient and accurate strain-level composition analysis tool based on refer
 Make sure these programs have been installed before using StrainScan. 
 
 ## Install (Linux or ubuntu only)
+
 Currently, yon can install StrainScan via Anaconda using the command below:<BR/>
-`conda env create -f environment.yaml`<BR/>
-`conda activate strainscan`<BR/>
-
-Or, you can install StrainScan mannually.
-
 ####
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
+
+`conda env create -f environment.yaml`<BR/>
+`conda activate strainscan`<BR/>
+
 `chmod 755 library/jellyfish-linux`<BR/>
 `chmod 755 library/dashing_s128`<BR/>
 ####
+
+Or, you can install all dependencies of StrainScan and run it mannually.
+
 
 ## Usage
 One example about database construction and identification command can be found in "test_run.sh".
