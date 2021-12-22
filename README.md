@@ -1,5 +1,5 @@
 # StrainScan
-One efficient and accurate strain-level identification tool based on reference genomes and k-mers.
+One efficient and accurate strain-level composition analysis tool based on reference genomes and k-mers.
 
 
 ### E-mail: heruiliao2-c@my.cityu.edu.hk
