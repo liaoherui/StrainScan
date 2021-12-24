@@ -1,397 +1,659 @@
+from treelib import Tree, Node
+import time
 import seqpy
 from Bio import SeqIO
-from collections import defaultdict
-import os
-import psutil
-import time
-import random
-import bidict
 import numpy as np
-from bisect import bisect_left
+from collections import defaultdict
+import bidict
+import random
+import os
 
 
-# hierarchical clustering tree structure
-class tree_node():
-    def __init__(self):
-        self.seq = -1   # node seq
-        self.fna = []   # strains seq
-        self.leaves = []
-        self.child = []
-        self.father = None
-        self.depth = -1
-        self.overlap_label = 0
-
-    def get_child(self, T1, T2):
-        self.child.append(T1)
-        self.child.append(T2)
-        T1.father = self
-        T2.father = self
-
-
-# build database
-def build_tree(arg):
-    # load parameters
-    start = time.time()
-    nn = arg[0]
-    cls_file = arg[1]
-    tree_dir = arg[2]
-    ksize = arg[3]
-    c_method = arg[4]
-
-    # read dashing distance matrix
-    fna = []
-    paths = []
-    seq = {}    # fna -> seq
-    f = open(nn, "r")
-    lines = f.readlines()
-    f.close()
-    for i in lines[0].rstrip().split("\t")[1:]:
-        paths.append(i)
-        x = i[i.rfind('/')+1:]
-        x = x[:x.find('.')]
-        fna.append(x)
-        seq[x] = len(fna)-1
-    dist = {}
-    index_temp = 0
-    for line in lines[1:]:
-        temp = line.rstrip().split("\t")
-        for j in range(0, len(fna)):
-            dist[(index_temp, j)] = float(temp[j+1])
-        index_temp += 1
-
-    # read 95 clustering results, ->leaves
-    f = open(cls_file, 'r')
-    lines = f.readlines()
-    f.close()
-    nodes = []
-    seq_node_mapping = {}
-    for line in lines:
-        temp = line.rstrip().split("\t")
-        T = tree_node()
-        T.seq = int(temp[0])
-        seq_node_mapping[T.seq] = T
-        for i in temp[2].split(","):
-            T.fna.append(seq[i])
-        T.leaves = [T.seq]
-        nodes.append(T)
-    leaves = nodes.copy()
-
-    # re-clustering
-    # extract k-mers of leaves
-    kmerlib_base = defaultdict(list)    # >80% common
-    spec = defaultdict(list)    # 20% remaining k-mers
-    kmerdict = bidict.bidict()
-    leaves_temp = leaves.copy() # to be scanned
-    rec_log = defaultdict(list)
-    strain_len = []
-
-    while(1):
-        # initialization
-        nodes = leaves.copy()
-        leaves_seq_list = []
-        for i in leaves:
-            leaves_seq_list.append(i.seq)
-        cls_seq = max(leaves_seq_list) + 1
-        cls_seq_copy = cls_seq  # reclustering node seq
-        cls_dist = {}
-        T0 = clustering(leaves, nodes, cls_dist, c_method, cls_seq, dist) # root node
-
-        # get depth info
-        for i in nodes:
-            d = []
-            get_depth(i, d)
-            i.depth = len(d)
-
-        # extract k-mers
-        kmer_index = 0
-        for i in leaves:
-            if(i in kmerlib_base):
-                continue
-            kmer_sta = defaultdict(dict)
-            for j in i.fna:
-                print(j)
-                for seq_record in SeqIO.parse(paths[j], "fasta"):
-                    temp = str(seq_record.seq)
-                    strain_len.append(len(temp)-ksize)
-                    for k in range(0, len(temp)-ksize):
-                        X = temp[k:k+ksize]
-                        Y = seqpy.revcomp(temp[k:k+ksize])
-                        for l in (X, Y):
-                            if(l in kmerdict):
-                                x = kmerdict[l]
-                            else:
-                                kmerdict[l] = kmer_index
-                                x = kmer_index
-                                kmer_index += 1
-                            kmer_sta[x][j] = None
-            cutoff = len(i.fna) * 0.8
-            for j in kmer_sta:
-                if(len(kmer_sta[j]) >= cutoff):
-                    kmerlib_base[i].append(j)
-                else:
-                    spec[i].append(j)
-            print(i.seq, len(kmerlib_base[i]), len(spec[i]))
-            kmerlib_base[i] = set(kmerlib_base[i])
-            spec[i] = set(spec[i])
-            print(u"Memory usage: %.4f GB"%(psutil.Process(os.getpid()).memory_info().rss/1024/1024/1024))
-            f = open(tree_dir+"/test/"+str(i.seq), "w")
-            f.write(str(psutil.Process(os.getpid()).memory_info().rss/1024/1024/1024))
-            f.close()
-
-        # test node k-mers
-        for i in leaves:
-            if(i not in leaves_temp):
-                continue
-            print(str(i.seq) + " testing")
-            f = open(tree_dir+"/test/"+str(i.seq)+"_test", "w")
-            f.write("test")
-            f.close()
-            intersect = i.leaves
-            diff = get_diff(i, nodes)
-            kmer_t = kmerlib_base[seq_node_mapping[intersect[0]]]
-            for j in range(1, len(intersect)):
-                kmer_t = kmer_t & kmerlib_base[seq_node_mapping[intersect[j]]]
-            for j in diff:
-                kmer_t = kmer_t - kmerlib_base[seq_node_mapping[j]]
-                kmer_t = kmer_t - spec[seq_node_mapping[j]]
-            if(len(kmer_t) >= 1000):    # qualified
-                leaves_temp.remove(i)
-            else:
-                D = -1
-                for k in leaves:
-                    if(i.seq != k.seq and cls_dist[(i.seq, k.seq)] >= D):
-                        D = cls_dist[(i.seq, k.seq)]
-                        j = k
-                del kmerlib_base[i]
-                del kmerlib_base[j]
-                del spec[i]
-                del spec[j]
-                T1 = tree_node()
-                T1.seq = cls_seq_copy
-                rec_log[T1.seq] = [i.seq, j.seq]
-                f = open(tree_dir+"/test/"+str(T1.seq)+"_modified", "w")
-                f.write("%d %d"%(i.seq, j.seq))
-                f.close()
-                T1.fna = i.fna + j.fna
-                T1.leaves = [T1.seq]
-                seq_node_mapping[T1.seq] = T1
-                leaves_temp.append(T1)
-                leaves.append(T1)
-                leaves.remove(i)
-                leaves.remove(j)
-                leaves_temp = list(set(leaves_temp)-set([i, j]))
-                break
-        if(len(leaves_temp) == 0):
-            break
-
-    f = open(tree_dir+"/rec_log.txt", "w")
-    for i in rec_log:
-        f.write("%d %d %d\n"%(i, rec_log[i][0], rec_log[i][1]))
-    f.close()
-
-    # rebuild seq
-    seq_node_mapping = {}
-    index = 1
-    for i in leaves:
-        i.seq = index
-        seq_node_mapping[index] = i
+# hierarchical clustering
+def hierarchy(fna_mapping, dist):
+    pending = list(fna_mapping.keys())
+    node_id = max(pending) + 1
+    mapping = bidict.bidict()
+    cls_dist = []
+    cls_dist_temp = {}
+    index = 0
+    pending.sort()
+    for i in pending:
+        mapping[i] = index
         index += 1
-    nodes = leaves.copy()
-    leaves_seq_list = []
-    for i in leaves:
-        i.leaves = [i.seq]
-        leaves_seq_list.append(i.seq)
-    cls_seq = max(leaves_seq_list) + 1
-    cls_dist = {}
-    T0 = clustering(leaves, nodes, cls_dist, c_method, cls_seq, dist) # root node
-    for i in nodes:
-        d = []
-        get_depth(i, d)
-        i.depth = len(d)
+    for i in range(0, len(pending)):
+        temp1 = []
+        for j in range(0, i):
+            temp1.append(cls_dist_temp[(mapping[pending[j]], mapping[pending[i]])])
+        for j in range(i, len(pending)):
+            temp = cal_cls_dist(dist, fna_mapping[pending[i]], fna_mapping[pending[j]])
+            temp1.append(temp)
+            cls_dist_temp[(mapping[pending[i]], mapping[pending[j]])] = temp
+        cls_dist.append([np.array(temp1)])
+    cls_dist = np.concatenate(cls_dist)
+    cls_dist_recls = cls_dist.copy()
+    mapping_recls = mapping.copy()
+    tree_relationship = {}
+    pending = set(pending)
 
-    # write in file
-    f = open(tree_dir+"/tree_structure.txt", "w")
-    for i in nodes:
-        f.write("%d\t"%i.seq)
-        if(i.father != None):
-            f.write("%d\t"%i.father.seq)
+    while(len(pending) > 1):
+        (child_a, child_b) = divmod(np.argmax(cls_dist), cls_dist.shape[1])
+        temp1 = [np.concatenate([[cls_dist[child_a]], [cls_dist[child_b]]]).max(axis=0)]
+        cls_dist = np.concatenate([cls_dist, temp1], axis=0)
+        temp1 = np.append(temp1, -1)
+        temp1 = np.vstack(temp1)
+        cls_dist = np.concatenate([cls_dist, temp1], axis=1)
+        cls_dist = np.delete(cls_dist, [child_a, child_b], axis = 0)
+        cls_dist = np.delete(cls_dist, [child_a, child_b], axis = 1)
+        # change mapping
+        cluster_a = mapping.inv[child_a]
+        cluster_b = mapping.inv[child_b]  # cluster id
+        tree_relationship[node_id] = (cluster_a, cluster_b)
+        del mapping[cluster_a], mapping[cluster_b]
+        pending.remove(cluster_a)
+        pending.remove(cluster_b)
+        for i in pending:
+            if(mapping[i]>min([child_a, child_b]) and mapping[i]<max([child_a, child_b])):
+                mapping[i] -= 1
+            elif(mapping[i]>max([child_a, child_b])):
+                mapping[i] -= 2
+        mapping[node_id] = len(cls_dist)-1
+        pending.add(node_id)
+        node_id += 1
+
+    # build tree structure
+    pending = list(pending)
+    tree = Tree()
+    T0 = Node(identifier = pending[0])
+    tree.add_node(T0)
+    while(len(pending)>0):
+        parent = pending[0]
+        for i in tree_relationship[parent]:
+            tree.add_node(Node(identifier = i), parent=parent)
+            if(i in tree_relationship):
+                pending.append(i)
+        pending.remove(parent)
+
+    # load depth info
+    depths = {}
+    depths_mapping = defaultdict(set)
+    leaves = set(tree.leaves())
+    for i in tree.all_nodes():
+        depths[i] = tree.depth(node=i)
+        if(i in leaves):
+            depths_mapping[depths[i]].add(i)
+
+    return cls_dist_recls, mapping_recls, tree, depths, depths_mapping
+
+
+def extract_kmers(fna_i, fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, identifier):
+    kmer_sta = defaultdict(int)
+    for j in fna_i:
+        for seq_record in SeqIO.parse(fna_path[j], "fasta"):
+            temp = str(seq_record.seq)
+            for k in range(0, len(temp)-ksize):
+                forward = temp[k:k+ksize]
+                reverse = seqpy.revcomp(forward)
+                for kmer in [forward, reverse]:
+                    try:
+                        kmer_sta[kmer_index_dict[kmer]] += 1
+                    except KeyError:
+                        kmer_index_dict[kmer] = kmer_index
+                        kmer_sta[kmer_index] += 1
+                        kmer_index += 1
+    alpha = len(fna_i) * alpha_ratio
+    for x in kmer_sta:
+        if(kmer_sta[x] >= alpha):
+            Lv[identifier].add(x)
         else:
-            f.write("N\t")
-        if(i.child != []):
-            f.write("%d %d\t"%(i.child[0].seq, i.child[1].seq))
-        else:
-            f.write("N\t")
-        for j in i.leaves:
-            f.write("%d "%j)
-        f.write("\t")
-        if(len(i.fna) == 1):
-            f.write("%s" % fna[i.fna[0]])
-        f.write("\n")
-    f.close()
-
-    f = open(tree_dir+"/hclsMap_95_recls.txt", "w")
-    for i in leaves:
-        f.write("%d\t%d\t"%(i.seq, len(i.fna)))
-        for j in i.fna:
-            if(j == i.fna[-1]):
-                f.write("%s\n"%fna[j])
-            else:
-                f.write("%s,"%fna[j])
-    f.close()
-
-    # create node k-mers
-    kmerlist = set([])
-    comp = set(leaves_seq_list) # complete leaves
-    length = {}
-    #os.system("mkdir "+tree_dir+"/nodes_kmer")
-    #os.system("mkdir "+tree_dir+"/overlap")
-    s_len = int(np.mean(strain_len))
-    X = np.linspace(0, s_len-1, num=30000, endpoint=True, retstep=False, dtype=None)
-    for i in range(0, len(X)):
-        X[i] = int(X[i])
-    for i in nodes:
-        print(str(i.seq) + " creating")
-        intersect = i.leaves
-        diff = get_diff(i, nodes)
-        diff_a = list(comp - set(intersect) - set(diff))
-        kmer_t = kmerlib_base[seq_node_mapping[intersect[0]]]
-        for j in range(1, len(intersect)):
-            kmer_t = kmer_t & kmerlib_base[seq_node_mapping[intersect[j]]]
-        for j in diff:
-            kmer_t = kmer_t - kmerlib_base[seq_node_mapping[j]]
-            kmer_t = kmer_t - spec[seq_node_mapping[j]]
-        temp = kmer_t.copy()
-        for j in diff_a:
-            kmer_t = kmer_t - kmerlib_base[seq_node_mapping[j]]
-            kmer_t = kmer_t - spec[seq_node_mapping[j]]
-        if(len(kmer_t) >= 1000):
-            if(len(kmer_t) <= 30000):
-                kmer_r = kmer_t # set
-            else:   # random sampling
-                kmer_r = random.sample(kmer_t, 30000)
-        else:   # overlap
-            i.overlap_label = 1
-            print(str(i.seq)+" overlapping")
-            if(len(temp) <= 30000):
-                kmer_r = temp
-            else:
-                overlap = {}
-                for j in temp:
-                    overlap[j] = 0
-                for j in diff_a:
-                    kmer_o = kmerlib_base[seq_node_mapping[j]] & temp
-                    for k in kmer_o:
-                        overlap[k] += 1
-                queue = sorted(overlap.items(), key = lambda kv:(kv[1], kv[0]))
-                kmer_r=[]
-                for j in range(0, 30000):
-                    kmer_r.append(queue[j][0])
-        f = open(tree_dir+"/nodes_kmer/"+str(i.seq), "w")
-        kmer_r = list(kmer_r)
-        print(len(kmer_r))
-        nkmer = {}
-        for j in range(0, len(kmer_r)):
-            f.write("%s "%kmerdict.inv[kmer_r[j]])
-            nkmer[kmer_r[j]] = j
-        length[i.seq] = len(kmer_r)
-        kmer_r = set(kmer_r)
-        kmerlist = kmerlist | kmer_r
-
-        # get overlap info
-        if(i.overlap_label == 1):
-            leaves_temp = []
-            for j in nodes:
-                if(j in leaves and j.depth < i.depth):
-                    leaves_temp.append(j)
-            for j in leaves_temp:
-                temp = kmerlib_base[j] & kmer_r
-                f = open(tree_dir+"/overlap/"+str(i.seq)+"_"+str(j.seq), "w")
-                for k in temp:
-                    f.write("%d "%nkmer[k])
-                f.close()
-
-    f = open(tree_dir+"/overlap_nodes.txt", "w")
-    for i in nodes:
-        if(i.overlap_label == 1):
-            f.write("%d\n"%i.seq)
-    f.close()
-
-    f = open(tree_dir+"/nodes_length.txt", "w")
-    for i in length:
-        f.write("%d\t%d\n"%(i, length[i]))
-    f.close()
-
-    f = open(tree_dir+"/kmer.fa", "w")
-    for i in kmerlist:
-        f.write(">1\n")
-        f.write(kmerdict.inv[i])
-        f.write("\n")
-    f.close()
-
-    end = time.time()
-    print('- The total running time of k-mer database building is ',str(end-start),' s\n')
+            spec[identifier].add(x)
+    print(identifier, len(Lv[identifier]), len(spec[identifier]))
+    return kmer_index
 
 
-def clustering(leaves, nodes, cls_dist, c_method, cls_seq, dist):
-    temp = leaves.copy()
-    for i in range(0, len(temp)):
-        for j in range(i+1, len(temp)):
-            x = cluster_distance(temp[i], temp[j], dist, c_method)
-            cls_dist[(temp[i].seq, temp[j].seq)] = x
-            cls_dist[(temp[j].seq, temp[i].seq)] = x
-    while(len(temp) != 1):
-        D = -1
-        for i in range(0, len(temp)):
-            for j in range(i+1, len(temp)):
-                x = cls_dist[(temp[i].seq, temp[j].seq)]
-                if(x > D):
-                    (D, a, b) = (x, i, j)
-        T = tree_node()
-        T.seq = cls_seq
-        cls_seq += 1
-        T.leaves = temp[a].leaves + temp[b].leaves
-        nodes.append(T)
-        T.get_child(temp[a], temp[b])
-        (x, y) = (temp[a].seq, temp[b].seq)
-        del temp[b]
-        del temp[a]
+def get_leaf_union(depth, higher_union, depths_mapping, Lv, spec, leaf):
+    union = depths_mapping[depth]-set([leaf])
+    if(len(higher_union) == 0):
+        res = set([])
+        x = max(list(depths_mapping.keys()))
+        for i in depths_mapping[x]:
+            higher_union[x] = higher_union[x] | Lv[i.identifier] | spec[i.identifier]
+        return get_leaf_union(depth, higher_union, depths_mapping, Lv, spec, leaf)
+    elif(depth == max(list(depths_mapping.keys()))):
+        res = set([])
+    elif(depth+1 in higher_union):
+        res = higher_union[depth+1]
+    else:
+        index = list(higher_union.keys())[0]
+        higher_union[depth+1] = higher_union[index]
+        diff_nodes = set([])
+        for i in range(depth+1, index):
+            diff_nodes = diff_nodes | depths_mapping[i]
+        del higher_union[index]
+        for i in diff_nodes:
+            higher_union[depth+1] = higher_union[depth+1] | Lv[i.identifier] | spec[i.identifier]
+        res = higher_union[depth+1]
+    return res, union
+
+def get_intersect(intersection, descendant_leaves, Lv, del_label, label): # (leaves, intersection)
+    waitlist = descendant_leaves.copy()
+    delete = []
+    kmerset = []
+    for i in intersection:
+        if(intersection[i][0].issubset(descendant_leaves)):
+            delete.append(i)
+            waitlist = waitlist - intersection[i][0]
+            kmerset.append(intersection[i][1])
+    for i in delete:
+        del intersection[i]
+    if(len(kmerset) == 0):
+        temp = list(descendant_leaves)
+        kmer_t = Lv[temp[0]]
+        for i in temp[1:]:
+            kmer_t = kmer_t & Lv[i]
+    elif(len(kmerset) == 1):
+        temp = list(waitlist)
+        kmer_t = kmerset[0]
         for i in temp:
-            if("single" in c_method):
-                z = max([cls_dist[(i.seq, x)], cls_dist[(i.seq, y)]])
-            elif("complete" in c_method):
-                z = min([cls_dist[(i.seq, x)], cls_dist[(i.seq, y)]])
-            cls_dist[(i.seq, T.seq)] = z
-            cls_dist[(T.seq, i.seq)] = z
-        temp.append(T)
-    return temp[0]
+            kmer_t = kmer_t & Lv[i]
+    else:
+        temp = list(waitlist)
+        kmer_t = kmerset[0]
+        for i in kmerset[1:]:
+            kmer_t = kmer_t & i
+        for i in temp:
+            kmer_t = kmer_t & Lv[i]
+    for i in waitlist:
+        del_label[i][0] = 1
+    intersection[label] = (descendant_leaves, kmer_t)
+    return kmer_t
 
 
-def cluster_distance(C1, C2, dist, c_method):
-    dist_temp = []
-    for i in C1.fna:
-        for j in C2.fna:
-            dist_temp.append(dist[(i, j)])
-    if(c_method == "single"):
-        return max(dist_temp)
-    elif(c_method == "complete"):
-        return min(dist_temp)
-
-
-def get_depth(T, d):
-    d.append(T)
-    if(T.father == None):
-        return 1
-    get_depth(T.father, d)
-
-
-def get_diff(T, nodes):
+def get_diff(higher_union, descendant_leaves, depths, all_nodes, node, Lv, spec, del_label):
     diff = []
-    for i in nodes:
-        if(i.depth == T.depth and i != T):
-            diff = diff + i.leaves
+    for i in all_nodes:
+        if(depths[i]==depths[node] and i!=node):
+            if(i.identifier not in higher_union):
+                delete = set([])
+                waitlist = descendant_leaves[i.identifier].copy()
+                kmerset = []
+                for j in higher_union:
+                    if(descendant_leaves[j].issubset(descendant_leaves[i.identifier])):
+                        delete.add(j)
+                        waitlist = waitlist - descendant_leaves[j]
+                        kmerset.append(higher_union[j])
+                waitlist = list(waitlist)
+                if(len(kmerset) == 0):
+                    kmer_t = Lv[waitlist[0]] | spec[waitlist[0]]
+                    for j in waitlist[1:]:
+                        kmer_t = kmer_t | Lv[j] | spec[j]
+                elif(len(kmerset) == 1):
+                    kmer_t = kmerset[0]
+                    for j in waitlist:
+                        kmer_t = kmer_t | Lv[j] | spec[j]
+                else:
+                    kmer_t = kmerset[0]
+                    for j in kmerset[1:]:
+                        kmer_t = kmer_t | j
+                    for j in waitlist:
+                        kmer_t = kmer_t | Lv[j] | spec[j]
+                higher_union[i.identifier] = kmer_t
+                for j in waitlist:
+                    del_label[j][1] = 1
+                for j in delete:
+                    del higher_union[j]
+            diff.append(higher_union[i.identifier])
     return diff
 
 
-#species = "Ecoli"
-#clustering_method = "single" # "single" or "complete"
-#build_tree(("/home/yongxinji2/new_clustering/L1_required_data/"+species+"/distance_matrix.txt", "/home/yongxinji2/new_clustering/L1_required_data/"+species+"/hclsMap_95_recls.txt", "/home/yongxinji2/new_clustering/Lib/"+species, 31, clustering_method))
+def delete(Lv, spec, del_label):
+    de = []
+    for i in del_label:
+        if(del_label[i] == [1, 1]):
+            del Lv[i], spec[i]
+            de.append(i)
+    for i in de:
+        del del_label[i]
+
+
+# build tree-based indexing structure
+def build_tree(arg):
+    # read parameters
+    start = time.time()
+    dist_matrix_file = arg[0]
+    cls_file = arg[1]
+    tree_dir = arg[2]
+    ksize = arg[3]
+    params = arg[4]
+    alpha_ratio = params[0]
+    minsize = params[1]
+    maxsize = params[2]
+    max_cls_size = params[3]
+
+    # save genomes info
+    fna_seq = bidict.bidict()    # : 1
+    fna_path = {}
+
+    # read dist matrix (represented by similarity: 1-dist)
+    # output: dist, fna_path, fna_seq
+    f = open(dist_matrix_file, "r")
+    lines = f.readlines()
+    f.close()
+    index = 0
+    d = lines[0].rstrip().split("\t")[1:]
+    bac_label = 0
+    for i in lines[0].rstrip().split("\t")[1:]:
+        temp = i[i.rfind('/')+1:].split(".")[0]
+        fna_seq[temp] = index
+        fna_path[index] = i
+        index += 1
+    dist = []
+    for line in lines[1:]:
+        dist.append([np.array(list(map(float, line.rstrip().split("\t")[1:])))])
+    dist = np.concatenate(dist)
+
+    # read initial clustering results. fna_mapping, from 1 for indexing
+    f = open(cls_file, 'r')
+    lines = f.readlines()
+    f.close()
+    fna_mapping = defaultdict(set)
+    for line in lines:
+        temp = line.rstrip().split("\t")
+        for i in temp[2].split(","):
+            fna_mapping[int(temp[0])].add(fna_seq[i])
+
+    # initially build tree
+    cls_dist, mapping, tree, depths, depths_mapping = hierarchy(fna_mapping, dist)
+
+    # initially extract k-mers
+    kmer_index_dict = bidict.bidict()
+    kmer_index = 1
+    Lv = defaultdict(set)
+    spec = defaultdict(set)    # k-mers <= alpha
+    leaves = tree.leaves()
+    for i in leaves:
+        kmer_index = extract_kmers(fna_mapping[i.identifier], fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, i.identifier)
+    end = time.time()
+    print('- The total running time of k-mer extraction is ',str(end-start),' s\n')
+    start = time.time()
+
+    # leaf nodes check
+    recls_label = 0
+    leaves_check = []
+    check_waitlist = reversed(leaves)
+    while(True):
+        if(recls_label):
+            cls_dist, mapping, tree, depths, depths_mapping = hierarchy(fna_mapping, dist)
+            leaves = tree.leaves()
+            temp = {}
+            temp2 = []
+            for i in check_waitlist:
+                if(i in fna_mapping):
+                    temp2.append(i)
+            check_waitlist = temp2.copy()
+            for i in check_waitlist:
+                temp[tree.get_node(i)] = depths[tree.get_node(i)]
+            check_waitlist = []
+            a = sorted(temp.items(), key=lambda x: x[1], reverse=True)
+            for i in a:
+                check_waitlist.append(i[0])
+            for i in fna_mapping:
+                if(i not in Lv):
+                    kmer_index = extract_kmers(fna_mapping[i], fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, i)
+        higher_union = defaultdict(set)
+        for i in check_waitlist:
+            diff, diff_nodes = get_leaf_union(depths[i], higher_union, depths_mapping, Lv, spec, i)
+            kmer_t = Lv[i.identifier] - diff
+            for j in diff_nodes:
+                kmer_t = kmer_t - Lv[j.identifier]
+            for j in diff_nodes:
+                kmer_t = kmer_t - spec[j.identifier]
+            print(str(i.identifier) + " checking", end = "\t")
+            print(len(kmer_t))
+            if(len(kmer_t) < minsize):
+                leaves_check.append(i)
+        if(len(leaves_check)>0):
+            recls_label = 1
+        else:
+            break
+        # re-clustering
+        check_waitlist = []
+        while(recls_label == 1):
+            cluster_id = max(list(fna_mapping.keys())) + 1
+            check_waitlist.append(cluster_id)
+            leaf_a = leaves_check[0].identifier
+            row_index = mapping[leaf_a]
+            column_index = cls_dist[row_index].argmax()
+            leaf_b = mapping.inv[column_index]  # (leaf_a, leaf_b)
+            temp2 = fna_mapping[leaf_a] | fna_mapping[leaf_b]
+            print(cluster_id, leaf_a, leaf_b, temp2)
+            del fna_mapping[leaf_a], fna_mapping[leaf_b]
+            if(leaf_a in Lv):
+                del Lv[leaf_a], spec[leaf_a]
+            if(leaf_b in Lv):
+                del Lv[leaf_b], spec[leaf_b]
+            del leaves_check[0]
+            if(tree.get_node(leaf_b) in leaves_check):
+                leaves_check.remove(tree.get_node(leaf_b))
+            temp1 = [np.concatenate([[cls_dist[row_index]], [cls_dist[column_index]]]).max(axis=0)]
+            cls_dist = np.concatenate([cls_dist, temp1], axis=0)
+            temp1 = np.append(temp1, -1)
+            temp1 = np.vstack(temp1)
+            cls_dist = np.concatenate([cls_dist, temp1], axis=1)
+            cls_dist = np.delete(cls_dist, [row_index, column_index], axis = 0)
+            cls_dist = np.delete(cls_dist, [row_index, column_index], axis = 1)
+            # change mapping
+            del mapping[leaf_a], mapping[leaf_b]
+            pending = list(fna_mapping.keys())
+            pending.sort()
+            for i in pending:
+                if(mapping[i]>min([row_index, column_index]) and mapping[i]<max([row_index, column_index])):
+                    mapping[i] -= 1
+                elif(mapping[i]>max([row_index, column_index])):
+                    mapping[i] -= 2
+            fna_mapping[cluster_id] = temp2
+            mapping[cluster_id] = len(cls_dist)-1
+            if(len(leaves_check) == 0):
+                break
+    del higher_union
+
+    # rebuild identifiers
+    all_nodes = tree.all_nodes()
+    leaves = set(tree.leaves())
+    id_mapping = bidict.bidict()
+    index = 1
+    index_internal = len(leaves)+1
+    for i in all_nodes:
+        if(recls_label == 0):
+            id_mapping[i.identifier] = i.identifier
+        elif(i in leaves):
+            id_mapping[i.identifier] = index
+            index += 1
+        else:
+            id_mapping[i.identifier] = index_internal
+            index_internal += 1
+    leaves_identifier = list(range(1, len(leaves)+1))
+    all_identifier = list(id_mapping.values())
+    all_identifier.sort()
+
+    # save2file
+    f = open(tree_dir+"/tree_structure.txt", "w")
+    os.system("mkdir "+tree_dir+"/kmers")
+    os.system("mkdir "+tree_dir+"/overlapping_info")
+    for nn in all_identifier:
+        i = id_mapping.inv[nn]
+        f.write("%d\t"%id_mapping[i])
+        if(i == all_nodes[0].identifier):
+            f.write("N\t")
+        else:
+            f.write("%d\t"%id_mapping[tree.parent(i).identifier])
+        if(nn in leaves_identifier):
+            f.write("N\t")
+        else:
+            [child_a, child_b] = tree.children(i)
+            f.write("%d %d\t"%(id_mapping[child_a.identifier], id_mapping[child_b.identifier]))
+        if(len(fna_mapping[i]) == 1):
+            temp = list(fna_mapping[i])[0]
+            temp = fna_seq.inv[temp]
+            f.write("%s"%temp)
+        f.write("\n")
+    f.close()
+    f = open(tree_dir+"/hclsMap_95_recls.txt", "w")
+    for nn in leaves_identifier:
+        i = id_mapping.inv[nn]
+        f.write("%d\t%d\t"%(nn, len(fna_mapping[i])))
+        temp1 = list(fna_mapping[i])
+        for j in temp1:
+            temp = fna_seq.inv[j]
+            if(j == temp1[-1]):
+                f.write("%s\n"%temp)
+            else:
+                f.write("%s,"%temp)
+    f.close()
+    end = time.time()
+    print('- The total running time of re-clustering is ',str(end-start),' s\n')
+    start = time.time()
+
+    # build indexing structure
+    kmerlist = set([])  # all kmers used
+    length = {}
+    overload_label = 0
+    if(len(tree.leaves())>max_cls_size):
+        overload_label = 1
+    # from bottom to top (unique k-mers)
+    uniq_temp = defaultdict(set)
+    rebuilt_nodes = []
+    all_identifier = set(all_identifier)
+    leaves_identifier = set(leaves_identifier)
+    descendant = defaultdict(set)  # including itself
+    ancestor = defaultdict(set)
+    descendant_leaves = defaultdict(set)
+    ancestor[all_nodes[0].identifier].add(all_nodes[0].identifier)
+    for i in all_nodes[1:]:
+        ancestor[i.identifier] = ancestor[tree.parent(i.identifier).identifier].copy()
+        ancestor[i.identifier].add(i.identifier)
+    for i in reversed(all_nodes):
+        print(str(id_mapping[i.identifier]) + " k-mer removing...")
+        if(i in leaves):
+            uniq_temp[i.identifier] = Lv[i.identifier]
+            descendant_leaves[i.identifier].add(i.identifier)
+        else:
+            (child_a, child_b) = tree.children(i.identifier)
+            descendant[i.identifier] = descendant[child_a.identifier] | descendant[child_b.identifier]
+            descendant_leaves[i.identifier] = descendant_leaves[child_a.identifier] | descendant_leaves[child_b.identifier]
+            uniq_temp[i.identifier] = uniq_temp[child_a.identifier] & uniq_temp[child_b.identifier]
+            uniq_temp[child_a.identifier] = uniq_temp[child_a.identifier] - uniq_temp[i.identifier]
+            uniq_temp[child_b.identifier] = uniq_temp[child_b.identifier] - uniq_temp[i.identifier]
+        descendant[i.identifier].add(i.identifier)
+    # remove overlapping
+    for i in reversed(all_nodes):
+        print(str(id_mapping[i.identifier]) + " k-mer set building...")
+        # no difference with sibling, subtree and ancestors
+        if(i == all_nodes[0]):
+            kmer_t = uniq_temp[i.identifier]
+        else:
+            diff = {}
+            temp = all_identifier - descendant[i.identifier] - set([tree.siblings(i.identifier)[0].identifier]) - ancestor[i.identifier]
+            for j in temp:
+                diff[j] = len(uniq_temp[j])
+            a = sorted(diff.items(), key=lambda x: x[1], reverse=True)
+            kmer_t = uniq_temp[i.identifier]
+            for j in a:
+                k = j[0]
+                kmer_t = kmer_t - uniq_temp[k]
+            # remove special k-mers
+            temp = leaves_identifier - descendant_leaves[i.identifier]
+            diff = {}
+            for j in temp:
+                diff[j] = len(spec[j])
+            a = sorted(diff.items(), key=lambda x: x[1], reverse=True)
+            for j in a:
+                k = j[0]
+                kmer_t = kmer_t - spec[k]
+        if(len(kmer_t) < minsize and overload_label==0):
+            rebuilt_nodes.append(i)
+            print("%d waiting for reconstruction..." % id_mapping[i.identifier])
+        else:
+            if(len(kmer_t) > maxsize):
+                kmer_t = set(random.sample(kmer_t, maxsize))
+            f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
+            for j in kmer_t:
+                f.write("%d "%j)
+            f.close()
+            length[i] = len(kmer_t)
+            kmerlist = kmerlist | kmer_t
+    del uniq_temp
+
+    # rebuild nodes
+    overlapping = defaultdict(dict)
+    intersection = defaultdict(set)
+    higher_union = defaultdict(set)
+    del_label = {}
+    for i in leaves:
+        del_label[i.identifier] = [0, 0]
+    for i in rebuilt_nodes:
+        print(str(id_mapping[i.identifier]) + " k-mer set rebuilding...")
+        kmer_t = get_intersect(intersection, descendant_leaves[i.identifier], Lv, del_label, i.identifier)
+        diff = get_diff(higher_union, descendant_leaves, depths, all_nodes, i, Lv, spec, del_label)
+        for j in diff:
+            kmer_t = kmer_t - j
+        lower_leaves = set([])
+        for j in leaves:
+            if(depths[j] < depths[i]):
+                lower_leaves.add(j)
+        if(len(kmer_t) > maxsize):
+            kmer_overlapping_sta = defaultdict(int)
+            for j in lower_leaves:
+                kmer_o = Lv[j.identifier] & kmer_t
+                for k in kmer_o:
+                    kmer_overlapping_sta[k] += 1
+            temp = sorted(kmer_overlapping_sta.items(), key=lambda kv:(kv[1], kv[0]))
+            kmer_t = set([])
+            for j in range(0, maxsize):
+                kmer_t.add(temp[j][0])
+        delete(Lv, spec, del_label)
+        nkmer = {}
+        f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
+        index = 0
+        for j in kmer_t:
+            f.write("%d "%j)
+            nkmer[j] = index
+            index += 1
+        length[i] = len(kmer_t)
+        kmerlist = kmerlist | kmer_t
+        # save overlapping info
+        for j in lower_leaves:
+            temp = Lv[j.identifier] & kmer_t
+            if(len(temp)>0):
+                overlapping[j.identifier][i.identifier] = set([])
+                for k in temp:
+                    overlapping[j.identifier][i.identifier].add(nkmer[k])
+
+    for i in overlapping:
+        f = open(tree_dir+"/overlapping_info/"+str(i), "w")
+        f1 = open(tree_dir+"/overlapping_info/"+str(i)+"_supple", "w")
+        count = -1
+        for j in overlapping[i]:
+            if(len(overlapping[i])!=0):
+                f.write("%d\n"%j)
+                for k in overlapping[i][j]:
+                    f.write("%d "%k)
+                f.write("\n")
+                count += 2
+                f1.write("%d %d\n"%(j, count))
+        f.close()
+        f1.close()
+
+    # final saving
+    f = open(tree_dir+"/reconstructed_nodes.txt", "w")
+    for i in rebuilt_nodes:
+        f.write("%d\n"%i.identifier)
+    f.close()
+
+    f = open(tree_dir+"/node_length.txt", "w")
+    for nn in all_identifier:
+        i = id_mapping.inv[nn]
+        f.write("%d\t%d\n"%(nn, length[tree[i]]))
+    f.close()
+
+    kmer_mapping = {}
+    index = 0
+    f = open(tree_dir+"/kmer.fa", "w")
+    for i in kmerlist:
+        f.write(">1\n")
+        f.write(kmer_index_dict.inv[i])
+        kmer_mapping[i] = index
+        index += 1
+        f.write("\n")
+    f.close()
+
+    # change index
+    files = os.listdir(tree_dir+"/kmers")
+    for i in files:
+        f = open(tree_dir+"/kmers/"+i, "r")
+        lines = f.readlines()
+        if(len(lines) == 0):
+            continue
+        d = lines[0].rstrip().split(" ")
+        d = map(int, d)
+        f = open(tree_dir+"/kmers/"+i, "w")
+        for j in d:
+            f.write("%d "%kmer_mapping[j])
+        f.close()
+
+    end = time.time()
+    print('- The total running time of tree-based indexing struture building is ',str(end-start),' s\n')
+
+
+def cal_cls_dist(dist, fna_i, fna_j):
+    if(fna_i==fna_j):
+        return -1
+    temp = set([])
+    for i in fna_i:
+        for j in fna_j:
+            temp.add(dist[i][j])
+    return max(temp)
+
+
+params = [0.8, 1000, 30000, 3000]
+
+# TESt
+'''
+build_tree(["/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/DB_Cae_Paper/Cluster_Result/distance_matrix.txt",
+"/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/DB_Cae_Paper/Cluster_Result/hclsMap_95_recls.txt",
+"test/",31, params])
+'''
+
+'''
+# Akk
+build_tree(["L1_required_data/Akk/distance_matrix.txt",
+"L1_required_data/Akk/hclsMap_95_recls.txt",
+"test_a",
+31, params])
+'''
+'''
+# Cae
+build_tree(["L1_required_data/Cae/distance_matrix.txt",
+"L1_required_data/Cae/hclsMap_95_recls.txt",
+"test_c",
+31, params])
+'''
+'''
+# Pre
+build_tree(["L1_required_data/Pre/distance_matrix.txt",
+"L1_required_data/Pre/hclsMap_95_recls.txt",
+"Lib/Pre",
+31, params])
+'''
+'''
+# Mtb
+build_tree(["L1_required_data/Mtb/distance_matrix.txt",
+"L1_required_data/Mtb/hclsMap_95_recls.txt",
+"Lib/Mtb",
+31, params])
+'''
+'''
+# Ecoli
+build_tree(["L1_required_data/Ecoli/distance_matrix.txt",
+"L1_required_data/Ecoli/hclsMap_95_recls.txt",
+"Lib/Ecoli",
+31, params])
+'''
+'''
+# Sep
+build_tree(["L1_required_data/Sep/distance_matrix.txt",
+"L1_required_data/Sep/hclsMap_95_recls.txt",
+"Lib/Sep",
+31, params])
+'''
+'''
+# hiv
+params = [0.8, 100, 30000, 3000]
+build_tree(["/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/Github_test_Virus/StrainScan/DB_HIV/Cluster_Result/distance_matrix.txt",
+"/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/Github_test_Virus/StrainScan/DB_HIV/Cluster_Result/hclsMap_95_recls.txt",
+"Lib/hiv",
+31, params])
+'''
+
+
+

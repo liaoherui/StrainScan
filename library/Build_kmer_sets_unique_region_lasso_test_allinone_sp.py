@@ -86,7 +86,7 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 				kid_match[kmr]=knum
 				kmatrix[knum][s-1]=1
 				knum+=1
-		print('Log:',s,kcount,len(resd),intervals)
+		print('Log:',ids_match[s],kcount,len(resd),intervals)
 	tem=[]
 	head=sorted(head)
 	for h in head:

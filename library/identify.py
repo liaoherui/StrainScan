@@ -1,581 +1,447 @@
-class tree_node():
-    def __init__(self):
-        self.seq = -1
-        self.child = []
-        self.father = None
-        self.category = 2 # 0, 'o1', 'o2', 1, 2: 2 -> (3000, ), 1 -> (1000, 3000)
-        self.leaves = []
-        self.access = 0
-        # output format
-        self.abundance = -1 # ultimate format
-        self.total_num = 0
-        self.covered_num = 0
-        self.strain = ""
-
-    def get_child(self, T1, T2):
-        self.child.append(T1)
-        self.child.append(T2)
-        T1.father = self
-        T2.father = self
-
-
+from treelib import Tree, Node
 import scipy.stats as st
-import time
 import os
+from collections import defaultdict
 import random
 import uuid
 import numpy as np
-from collections import defaultdict
+import time
 
 
-def read_tree(nodes, leaves, db_dir, seq_node_mapping):
+def read_tree_structure(db_dir): # tree.data [node category, accessibility, covered_num, total_num, abundance]
+    GCF = {}
     f = open(db_dir+"/tree_structure.txt", "r")
     lines = f.readlines()
-    for line in lines:
-        temp = line.rstrip().split("\t")
-        T = tree_node()
-        T.seq = int(temp[0])
-        seq_node_mapping[T.seq] = T
-        if(temp[1] == "N"):
-            T0 = T
+    tree = Tree()
+    for i in range(1, len(lines)+1):
+        temp = lines[-i].rstrip().split("\t")
+        if(i == 1):
+            tree.create_node(identifier=int(temp[0]))
         else:
-            T.father = int(temp[1]) # int
-        nodes.append(T)
-        if(temp[2] != "N"):
-            temp1 = temp[2].split(" ")
-            T.child = [int(temp1[0]), int(temp1[1])]
-        else:
-            leaves.append(T)
-        temp1 = temp[3].split(" ")
-        if('' in temp1):
-            del temp1[-1]
-        temp1[-1] = temp1[-1].rstrip()
-        for i in temp1:
-            T.leaves.append(int(i))
-        if(len(temp) == 5):
-            T.strain = temp[4]
-    # get true c&f
-    for i in nodes:
-        if(i.father != None):
-            i.father = seq_node_mapping[i.father]
-        if(i.child != []):
-            i.child = [seq_node_mapping[i.child[0]], seq_node_mapping[i.child[1]]]
-    return T0
+            tree.create_node(identifier=int(temp[0]), parent=int(temp[1]))
+        if(len(temp) == 4):
+            GCF[tree.get_node(int(temp[0]))] = temp[3]  # cluster with size 1
+    #tree.show()
+    return tree, GCF
 
 
-def nodes_classify(nodes, db_dir, seq_node_mapping):
+def get_node_label(db_dir, tree):
+    f = open(db_dir+"/node_length.txt", "r")
     length = {}
-    f = open(db_dir+"/nodes_length.txt", "r")
     lines = f.readlines()
     for line in lines:
         d = line.rstrip().split("\t")
         length[int(d[0])] = int(d[1])
-    for i in nodes:
-        if(length[i.seq] < 1000):
-            i.category = 0
-        elif(length[i.seq] < 3000):
-            i.category = 1
-    f = open(db_dir + "/overlap_nodes.txt", "r")
+    for node in tree.all_nodes():
+        if(length[node.identifier] < 1000):
+            node.data[0] = 0
+        elif(length[node.identifier] < 3000):
+            node.data[0] = 1
+        else:
+            node.data[0] = 2
+    f = open(db_dir + "/reconstructed_nodes.txt", "r")
     lines = f.readlines()
     for line in lines:
-        x = seq_node_mapping[int(line.rstrip())]
-        if(x.category != 0):
-            if(length[x.seq] < 3000):
-                x.category = 'o1'
+        node = tree.get_node(int(line.rstrip()))
+        if(node.data[0] != 0):
+            if(length[node.identifier] < 3000):
+                node.data[0] = 'o1'
             else:
-                x.category = 'o2'
+                node.data[0] = 'o2'
 
 
-def jellyfish_count(fq_path, db_dir, match_results):
-    if(type(fq_path) == str):
-        x = fq_path
-    else:
-        x = " ".join(fq_path)
+def jellyfish_count(fq_path, db_dir):
+    if(type(fq_path) != str):
+        fq_path = " ".join(fq_path)
     dir_jf = os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
+    #jf_res_path = "temp.fa"
     # test
-    #path = "temp.fa"
-    #if(os.path.exists(path) == False):
-    #    #print(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp.jf " + x)
-    #    os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp.jf " + x)
-    #    os.system(dir_jf+" dump -c temp.jf > temp.fa")
-    #    os.system("rm temp.jf")
-    # formal edition
-    uid = uuid.uuid1().hex
-    path = "temp_"+uid+".fa"
-    os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + x)
-    os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
-    os.system("rm temp_"+uid+".jf")
-    f = open(path, "r")
+    #os.system("rm temp.fa")
+    uid=uuid.uuid1().hex
+    jf_res_path='temp_'+uid+'.fa'
+    if(os.path.exists(jf_res_path) == False):
+        os.system(dir_jf+" count -m 31 -s 100M -t 8 --if "+db_dir+"/kmer.fa -o temp_"+uid+".jf "+fq_path)
+        os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
+        os.system("rm temp_"+uid+".jf")
+    kmer_index_dict = {}
+    f = open(db_dir+"/kmer.fa", "r")
+    lines = f.readlines()
+    index = 0
+    for i in range(0, int(len(lines)/2)):
+        kmer_index_dict[lines[i*2+1].rstrip()] = index
+        index += 1
+    f.close()
+    match_results = {}
+    f = open(jf_res_path, "r")
     lines = f.readlines()
     for line in lines:
         temp = line.rstrip().split(" ")
-        match_results[temp[0]] = int(temp[1])
+        match_results[kmer_index_dict[temp[0]]] = int(temp[1])
     os.system("rm temp_"+uid+".fa")
+    return match_results
 
 
 def del_outlier(profile):
-    delete_index = []
-    x = 100 * np.median(profile)
-    for i in range(0, len(profile)):
-        if(profile[i]>=x):
-            delete_index.append(i)
-    delete_index.sort(reverse = True)
-    for i in delete_index:
-        del profile[i]
+    cutoff = 100 * np.median(profile)
+    profile_copy = profile.copy()
+    for i in profile:
+        if(i>=cutoff):
+            profile_copy.remove(i)
+    return profile_copy
 
 
-def match_node(node, profile, match_results, db_dir):
-    f = open(db_dir+"/nodes_kmer/"+str(node.seq), "r")
+def match_node(match_results, db_dir, node_id, valid_kmers):
+    f = open(db_dir+"/kmers/"+str(node_id), "r")
     lines = f.readlines()
-    uncovered = 0
-    line = lines[0].rstrip().split(" ")
-    for x in line:
-        if(x in match_results):
-            if(match_results[x]>0): # dont ignore 1
-                profile.append(match_results[x])
-            else:
-                uncovered += 1
-    length = uncovered+len(profile)
-    if(len(profile)>0):
-        del_outlier(profile)
-    return length
+    d = set(map(int, lines[0].rstrip().split(" ")))
+    valid_kmer = valid_kmers & d
+    k_profile = []
+    for k in valid_kmer:
+        temp = match_results[k]
+        if(temp>0): # don't ignore count 1
+            k_profile.append(temp)
+    if(len(k_profile)>0):
+        k_profile = del_outlier(k_profile)
+    return len(valid_kmer), k_profile
 
 
-def piecewise(cov_cutoff, cov, label, profile): # cov_cutoff = [0.05, 0.01]
-    if(label in [1, 'o1']): # 0.01
-        x = cov_cutoff[1]
-    elif(label in [2, 'o2']):
-        x = cov_cutoff[0]
-    if(cov >= x):
-        return np.mean(profile)
+def piecewise(cov_cutoff, cov, label, k_profile):
+    if(label in [1, 'o1']):
+        cov_cutoff = cov_cutoff/2
+    if(cov >= cov_cutoff):
+        return np.mean(k_profile)
     else:
         return 0
 
 
-def find_bro(T):
-    for i in T.father.child:
-        if(i!=T):
-            return i
-
-
-def get_uniq_path(T, path):
-    path.append(T)
-    if(T.father == None or find_bro(T).access in [1, 2]):
+def get_uniq_path(node, uniq_path, tree):
+    uniq_path.append(node)
+    parent = tree.parent(node.identifier)
+    if(parent == None or tree.siblings(node.identifier)[0].data[1] in [1, 2]):
         return 1
-    get_uniq_path(T.father, path)
+    get_uniq_path(parent, uniq_path, tree)
 
 
-def get_father_ab(T, length, cov, abundance):
-    path = []
-    get_uniq_path(T, path)
-    Sum_k = 0
-    l = 0
-    for j in path:
-        Sum_k += length[j.seq] * cov[j.seq]
-        l += length[j.seq]
-    if(l >= 1000):
+def get_ancestor_ab(node, tree, length, cov, abundance):
+    uniq_path = []
+    get_uniq_path(node, uniq_path, tree)
+    kmer_number = {}
+    valid_kmers = 0
+    for N in uniq_path:
+        kmer_number[N] = length[N]*cov[N]
+        valid_kmers += length[N]
+    kmer_numbers = sum(list(kmer_number.values()))
+    if(valid_kmers >= 1000):
         ratio = []
         ab = []
-        for j in path:
-            ratio.append(cov[j.seq]*length[j.seq]/Sum_k)
-            ab.append(abundance[j.seq])
+        for N in uniq_path:
+            ratio.append(kmer_number[N]/kmer_numbers)
+            ab.append(abundance[N])
         return sum([a*b for a,b in zip(ab,ratio)])
     else:
         return -1
 
 
-def get_unique_kmer(node, cov, abundance, length, results, cov_cutoff, db_dir, match_results, seq_node_mapping):
-    delete = set([])    # remain kmer quantity test
-    profile = []
+def adjust_profile(node, results, valid_kmers, length, abundance, cov, match_results, cov_cutoff, db_dir, overlapping_info):
     overlap = defaultdict(list)
-    uncovered = 0
-
-    f = open(db_dir+"/nodes_kmer/"+str(node.seq), "r")
+    delete = set([])
+    k_profile = []
+    f = open(db_dir+"/kmers/"+str(node.identifier), "r")
     lines = f.readlines()
-    line = lines[0].rstrip().split(" ")
+    d = set(map(int, lines[0].rstrip().split(" ")))
     for i in results:
-        path = db_dir+"/overlap/"+str(node.seq)+"_"+str(i.seq)
-        if(os.path.exists(path) == False):
-            continue
-        f = open(path, "r")
-        lines = f.readlines()
-        if(len(lines)>0):
-            overlap[i.seq] = list(map(int, lines[0].rstrip().split(" ")))
-            delete = set(overlap[i.seq]) | delete
-    # test
-    #print(len(line) - len(delete))
-    if(node.seq == 365):
-        f = open("test.fa", "w")
-        for i in list(set(range(0, len(line))) - delete):
-            f.write("%s "%line[i])
-        f.close()
-    if(len(line) - len(delete) >= 1000):
-        remain = set(list(range(0, len(line)))) - delete
-        remain = list(remain)
-        for k in remain:
-            if(line[k] in match_results):
-                if(match_results[line[k]]>0):
-                    profile.append(match_results[line[k]])
-                else:
-                    uncovered += 1
-        length[node.seq] = uncovered + len(profile)
-        if(len(profile)>0):
-            del_outlier(profile)
-        cov[node.seq] = len(profile)/length[node.seq]
-        abundance[node.seq] = piecewise(cov_cutoff, cov[node.seq], node.category, profile)
-        if(length[node.seq]<3000):
+        if(i.identifier in overlapping_info and node.identifier in overlapping_info):
+            overlap[i.identifier] = set(overlapping_info[i.identifier][node.identifier])
+            delete = overlap[i.identifier] | delete
+    if(len(d) - len(delete) >= 1000):
+        remain = d - delete
+        valid_kmer = valid_kmers & remain
+        for k in valid_kmer:
+            temp = match_results[k]
+            if(temp>0):
+                k_profile.append(temp)
+        if(len(k_profile)>0):
+            k_profile = del_outlier(k_profile)
+        length[node] = len(valid_kmer)
+        cov[node] = len(k_profile)/length[node]
+        abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
+        if(length[node]<3000):
             return 1
         else:
             return 2
     else:
-        print("overlapping: "+str(node.seq))
+        valid_kmer = valid_kmers & d
         temp_match = {}
-        j = 0
-        for x in line:
-            if(x in match_results):
-                temp_match[j] = match_results[x]
-            j += 1
         x = {}
-        temp = []
-        for j in results:
-            x[j.seq] = j.abundance
-            #x[j.seq] = len(overlap[j.seq])
+        for i in valid_kmer:
+            temp_match[i] = match_results[i]
+        for i in results:
+            x[i] = i.data[4]
         Tuple = sorted(x.items(), key = lambda kv:(kv[1], kv[0]), reverse = True)
-        for k in Tuple:
-            temp.append(seq_node_mapping[k[0]])
-        for j in temp:
+        for j in Tuple:
             temp_match1 = {}
-            if(j.seq in overlap):
-                for x in overlap[j.seq]:
-                    if(x in temp_match and temp_match[x]>0):
-                        temp_match1[x] = temp_match[x]
-            print(j.seq, len(temp_match1), j.abundance)
-            sample = np.random.poisson(j.abundance, size=len(temp_match1))
+            i = j[0]
+            if(i.identifier in overlap):
+                overlapped_kmers = valid_kmer & set(overlap[i.identifier])
+                for k in overlapped_kmers:
+                    if(temp_match[k] > 0):
+                        temp_match1[k] = temp_match[k]
+            sample = np.random.poisson(abundance[i], size=len(temp_match1))
             sample.sort()
-            Tuple = sorted(temp_match1.items(), key = lambda kv:(kv[1], kv[0]))
+            Tuple1 = sorted(temp_match1.items(), key = lambda kv:(kv[1], kv[0]))
             for k in range(0, len(sample)):
-                temp_match[Tuple[k][0]] = Tuple[k][1] - sample[k]
-        for j in temp_match:
-            if(temp_match[j]>0):
-                profile.append(temp_match[j])
-        length[node.seq] = len(temp_match)
-        del_outlier(profile)
-        cov[node.seq] = len(profile)/length[node.seq]
-        abundance[node.seq] = piecewise(cov_cutoff, cov[node.seq], node.category, profile)
-        if(length[node.seq]<3000):
+                temp_match[Tuple1[k][0]] = Tuple1[k][1] - sample[k]
+        for i in temp_match:
+            if(temp_match[i]>0):
+                k_profile.append(temp_match[i])
+        length[node] = len(valid_kmer)
+        cov[node] = len(k_profile)/length[node]
+        abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
+        if(length[node]<3000):
             return 'o1'
         else:
             return 'o2'
 
 
-def identification(pending, length, cov, abundance, match_results, db_dir, cov_cutoff, ab_cutoff, results, leaves, res_temp, seq_node_mapping):
+def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info):
     group = pending[0]
-    print("--------------------------------------------------")
-    if(len(group) == 1 and group[0].category != 0): # assume T0 is 2 or 1
-        profile = []
-        x = group[0]
-        group[0].access = 1
-        length[x.seq] = match_node(x, profile, match_results, db_dir)
-        cov[x.seq] = len(profile)/length[x.seq]
-        abundance[x.seq] = piecewise(cov_cutoff, cov[x.seq], x.category, profile)
-        print("%d\n%f | %f | %d"%(x.seq, abundance[x.seq], cov[x.seq], length[x.seq]))
-        if(abundance[x.seq] >= ab_cutoff):
-            pending.append((x.child[0], x.child[1]))
-            pending.remove(group)
-        else:
-            pending.remove(group)
+    print("__________________________________________________")
+    if(len(group)==1 and group[0].data[0]!=0):  # root node is strong
+        node = group[0]
+        node.data[1] = 1 # access = 1
+        length[node], k_profile = match_node(match_results, db_dir, node.identifier, valid_kmers)
+        cov[node] = len(k_profile)/length[node]
+        abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
+        print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
+        if(abundance[node]>=ab_cutoff):
+            pending.append(tree.children(node.identifier))
+        del pending[0]
         return 1
-    elif(len(group) == 1 and group[0].category == 0): # do not use it
-        x = group[0]
-        x.access = 1
-        length[x.seq] = 0
-        cov[x.seq] = 0
-        abundance[x.seq] = 0
-        print("%d\n%f | %f | %d"%(x.seq, abundance[x.seq], cov[x.seq], length[x.seq]))
-        pending.append((x.child[0], x.child[1]))
-        pending.remove(group)
+    elif(len(group)==1 and group[0].data[0]==0):    # root node is weak
+        node = group[0]
+        node.data[1] = 1 # access = 1
+        length[node] = 0
+        cov[node] = 0
+        abundance[node] = 0
+        print("%d:    weak"%node.identifier)
+        pending.append(tree.children(node.identifier))
+        del pending[0]
         return 1
-    print("father node %d"%group[0].father.seq)
-    if(group[0].category == 0 and group[1].category == 0): # double zero nodes
-        print("%d\ndefault\n%d\ndefault"%(group[0].seq, group[1].seq))
-        group[0].access = 2 # not sure
-        group[1].access = 2
-        for i in group:
-            pending.append((i.child[0], i.child[1]))
-            length[i.seq] = 0
-            cov[i.seq] = 0
-            abundance[i.seq] = 0
-        pending.remove(group)
-        return 1
-    father_ab = get_father_ab(group[0].father, length, cov, abundance)
-    if(father_ab <= ab_cutoff):
-        for i in group:
-            if(i.category == 0):
-                abundance[i.seq] = 0
-                cov[i.seq] = 0
-                length[i.seq] = 0
-                i.access = 2
-                pending.append((i.child[0], i.child[1]))
-                print("%d\ndefault"%i.seq)
-                continue
-            elif(i.category in [1, 2] or len(results) == 0):
-                profile = []
-                length[i.seq] = match_node(i, profile, match_results, db_dir)
-                cov[i.seq] = len(profile)/length[i.seq]
-                abundance[i.seq] = piecewise(cov_cutoff, cov[i.seq], i.category, profile)
-            else:
-                get_unique_kmer(i, cov, abundance, length, results, cov_cutoff, db_dir, match_results, seq_node_mapping)
-            print("%d\n%f | %f | %d"%(i.seq, abundance[i.seq], cov[i.seq], length[i.seq]))
-            if(abundance[i.seq] >= ab_cutoff):
-                i.access = 1
-                if(i in leaves):
-                    res_temp.append(i)
-                else:
-                    pending.append((i.child[0], i.child[1]))
-        pending.remove(group)
-        return 1
-    X = []  # to be corrected
-    for i in group:
-        if(i.category == 0):
-            abundance[i.seq] = 0
-            cov[i.seq] = 0
-            length[i.seq] = 0
-            X.append((i, 0))
-            print("%d\ndefault"%i.seq)
-        elif(i.category in [1, 2] or len(results) == 0):
-            if(i.category == 'o1'):
-                i.category = 1
-            elif(i.category == 'o2'):
-                i.category = 2
-            X.append((i, i.category))
-            profile = []
-            length[i.seq] = match_node(i, profile, match_results, db_dir)
-            cov[i.seq] = len(profile)/length[i.seq]
-            abundance[i.seq] = piecewise(cov_cutoff, cov[i.seq], i.category, profile)
-            print("%d\n%f | %f | %d"%(i.seq, abundance[i.seq], cov[i.seq], length[i.seq]))
-            if(abundance[i.seq] < ab_cutoff):
-                abundance[i.seq] = 0
-        else:
-            i.category = get_unique_kmer(i, cov, abundance, length, results, cov_cutoff, db_dir, match_results, seq_node_mapping)
-            print("%d\n%f | %f | %d"%(i.seq, abundance[i.seq], cov[i.seq], length[i.seq]))
-            if(abundance[i.seq] < ab_cutoff):
-                abundance[i.seq] = 0
-            X.append((i, i.category))
+    print("parent node: %d ->"%tree.parent(group[0].identifier).identifier)
+    if(group[0].data[0]==0 and group[0].data[1]==0):    #both weak
+        print("%d:    weak\n%d:    weak"%(group[0].identifier, group[1].identifier))
+        group[0].data[1] = 2 # access = 2, not sure
+        group[1].data[1] = 2
+        for node in group:
+            abundance[node] = 0
+            cov[node] = 0
+            length[node] = 0
+            pending.append(tree.children(node.identifier))
+        del pending[0]
 
-    # correction
-    label = 0
-    if(set([X[0][1], X[1][1]]) in [set(['o1', 'o1']), set(['o2', 'o2'])]):
-        label = 1
-    elif(0 in set([X[0][1], X[1][1]])):
-        for i in X:
-            if(i[1] == 0):
-                x = i[0]
-            else:
-                y = i[0]
-        label = 2
-    elif(set([X[0][1], X[1][1]]) == set(['o1', 'o2'])):
-        label = 2
-        for i in X:
-            if(i[1] == 'o1'):
-                x = i[0]
-            else:
-                y = i[0]
-    elif(set([X[0][1], X[1][1]]) in [set(['o1', 2]), set(['o2', 2])]):
-        label = 2
-        for i in X:
-            if(i[1] == 2):
-                y = i[0]
-            else:
-                x = i[0]
+    correction_label = 0
+    group_label = []
+    for node in group:
+        if(node.data[0] == 0):
+            abundance[node] = 0
+            cov[node] = 0
+            length[node] = 0
+            node.data[1] = 2
+            pending.append(tree.children(node.identifier))
+            print("%d:    weak"%node.identifier)
+            group_label.append((node, 0))
+            continue
+        elif(node.data[0] in [1, 2] or len(results) == 0):
+            if(node.data[0] == 'o1'):
+                node.data[0] = 1
+            elif(node.data[0] == 'o2'):
+                node.data[0] = 2
+            group_label.append((node, node.data[0]))
+            length[node], k_profile = match_node(match_results, db_dir, node.identifier, valid_kmers)
+            cov[node] = len(k_profile)/length[node]
+            abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
+        else:
+            correction_label = 1
+            node.data[0] = adjust_profile(node, results, valid_kmers, length, abundance, cov, match_results, cov_cutoff, db_dir, overlapping_info)
+            group_label.append((node, node.data[0]))
+        if(abundance[node]<ab_cutoff):
+            abundance[node] = 0
+        print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
 
-    if(label == 1):
-        for i in [X[0][0], X[1][0]]:
-            abundance[i.seq] = father_ab * (abundance[i.seq]/(abundance[X[0][0].seq]+abundance[X[1][0].seq]))
-    elif(label == 2):
-        abundance[x.seq] = father_ab - abundance[y.seq]
+    if(correction_label == 1):
+        # calculate reference abundance
+        ancestor_ab = get_ancestor_ab(tree.parent(group[0].identifier), tree, length, cov, abundance)
+        if(ancestor_ab<=ab_cutoff):
+            pass
+        else:
+            label = 0
+            if(set([group_label[0][1], group_label[1][1]]) in [set(['o1', 'o1']), set(['o2', 'o2'])]):
+                label = 1
+            elif(0 in set([group_label[0][1], group_label[1][1]]) or set([group_label[0][1], group_label[1][1]]) == set(['o1', 'o2'])):
+                label = 2
+                for i in group_label:
+                    if(i[1] == 0 or i[1] == 'o1'):
+                        x = i[0]
+                    else:
+                        y = i[0]
+            elif(set([group_label[0][1], group_label[1][1]]) in [set(['o1', 2]), set(['o2', 2])]):
+                label = 2
+                for i in group_label:
+                    if(i[1] == 2):
+                        y = i[0]
+                    else:
+                        x = i[0]
+            if(label == 1):
+                for i in [group_label[0][0], group_label[1][0]]:
+                    abundance[i] = ancestor_ab * (abundance[i]/(abundance[group_label[0][0]]+abundance[group_label[1][0]]))
+            elif(label == 2):
+                abundance[x] = ancestor_ab - abundance[y]
 
     # binomial test
     ab_temp = {}
     for i in range(0, 2):
-        if(abundance[group[i].seq] < ab_cutoff):
-            ab_temp[group[i]] = 0
-        else:
-            ab_temp[group[i]] = round(abundance[group[i].seq])
+        ab_temp[group[i]] = round(abundance[group[i]])
     if(list(ab_temp.values()) == [0, 0]):
-        pending.remove(group)
+        del pending[0]
         return 1
     Tuple = sorted(ab_temp.items(), key = lambda kv:(kv[1]))
     (a, b, x, y) = (Tuple[1][0], Tuple[0][0], Tuple[1][1], Tuple[0][1])
-    ret = 1 - st.binom.sf(max([x, y]), x+y, 0.995)  # 0.995
+    ret = 1 - st.binom.sf(max([x, y]), x+y, 0.995)
     if(ret < 0.05):
-        for i in (a, b):
-            if(i.category == 0):
-                i.access = 2
-            else:
-                i.access = 1
-            if(i not in leaves):
-                pending.append((i.child[0], i.child[1]))
-            else:
-                res_temp.append(i)
+        temp = (a, b)
     else:
-        if(a.category == 0):
-            a.access = 2
+        temp = [a]
+    for i in temp:
+        if(i.data[0] == 0):
+            i.data[1] = 2
         else:
-            a.access = 1
-        if(a not in leaves):
-            pending.append((a.child[0], a.child[1]))
+            i.data[1] = 1
+        if(i not in leaves):
+            pending.append(tree.children(i.identifier))
         else:
-            res_temp.append(a)
-    pending.remove(group)
+            res_temp.append(i)
+    del pending[0]
     return 1
 
 
-def res_node_proc(node, abundance, length, cov, overall_cutoff):
-    print("check " + str(node.seq))
-    path = []
-    get_uniq_path(node, path)
-    for j in path:
-        node.covered_num += length[j.seq]*cov[j.seq]
-        node.total_num += length[j.seq]
-    node.covered_num = int(node.covered_num)
-    print(node.seq, node.covered_num/node.total_num)
-    #if(node.covered_num/node.total_num < overall_cutoff and len(path)!=1):
-    if(node.covered_num/node.total_num < overall_cutoff):
+def res_node_proc(node, wa_cov_cutoff, length, cov, abundance, tree):
+    uniq_path = []
+    get_uniq_path(node, uniq_path, tree)
+    for j in uniq_path:
+        node.data[2] += length[j]*cov[j]
+        node.data[3] += length[j]
+    node.data[2] = int(node.data[2])
+    if(node.data[2]/node.data[3] < wa_cov_cutoff):
         return 0
-    #elif(node.covered_num/node.total_num < overall_cutoff/4 and overall_cutoff > 0.1):
-    #    return 0
-    #elif(node.covered_num/node.total_num < overall_cutoff and overall_cutoff <0.1):
-    #    return 0
     ratio = []
     ab = []
-    for j in path:
-        ratio.append(cov[j.seq]*length[j.seq]/node.covered_num)
-        ab.append(abundance[j.seq])
-    node.abundance = sum([a*b for a,b in zip(ab,ratio)])
-    if(node.abundance <= 1):
+    for j in uniq_path:
+        ratio.append(cov[j]*length[j]/node.data[2])
+        ab.append(abundance[j])
+    node.data[4] = sum([a*b for a,b in zip(ab,ratio)])
+    if(node.data[4] <= 1):
         return 0
     return 1
 
 
-def check_access(T):
-    T.access = 1
-    if(T.father!=None):
-        check_access(T.father)
-
-
-def get_total_ab(results):
-    total_ab = 0
-    for i in results:
-        total_ab += i.abundance
-    return total_ab
+def check_access(node, tree):
+    node.data[1] = 1
+    p = tree.parent(node.identifier)
+    if(p != None):
+        check_access(p, tree)
 
 
 def identify_cluster(fq_path, db_dir, cutoff):
     start=time.time()
 
-    nodes = []
-    leaves = []
-    seq_node_mapping = {}
-    match_results = {}
+    tree, GCF = read_tree_structure(db_dir)
+    for i in tree.all_nodes():
+        i.data = [-1, -1, -1, -1, -1]
+    get_node_label(db_dir, tree)
+    match_results = jellyfish_count(fq_path, db_dir)
+    valid_kmers = set(match_results.keys())
+    leaves = tree.leaves()
 
-    T0 = read_tree(nodes, leaves, db_dir, seq_node_mapping)
-    nodes_classify(nodes, db_dir, seq_node_mapping)
-    jellyfish_count(fq_path, db_dir, match_results)
-
-    # identification
+    # CST search
     ab_cutoff = cutoff[2]
-    cov_cutoff = [cutoff[0], cutoff[0]/2]
-    overall_cov_cutoff = cutoff[1]
-    pending = [[T0]]
+    cov_cutoff = cutoff[0]
+    wa_cov_cutoff = cutoff[1]   # weighted average
+    pending = [[tree.all_nodes()[0]]]
     results = []
     length = {}
-    abundance = {}
     cov = {}
+    abundance = {}
     alternative = []
+    overlapping_info = defaultdict(dict)
 
-    while(len(pending) != 0):
+    while(len(pending)!=0):
         res_temp = []
-        identification(pending, length, cov, abundance, match_results, db_dir, cov_cutoff, ab_cutoff, results, leaves, res_temp, seq_node_mapping)
+        search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info)
         for j in res_temp:
-            x = res_node_proc(j, abundance, length, cov, overall_cov_cutoff)
+            label = res_node_proc(j, wa_cov_cutoff, length, cov, abundance, tree)
             alternative.append(j)
-            if(x == 1):
-                check_access(j)
+            if(label == 1):
+                check_access(j, tree)
                 results.append(j)
+                if(os.path.exists(db_dir+"/overlapping_info/"+str(j.identifier))):
+                    f1 = open(db_dir+"/overlapping_info/"+str(j.identifier), "r")
+                    f2 = open(db_dir+"/overlapping_info/"+str(j.identifier)+"_supple", "r")
+                    lines = f1.readlines()
+                    lines2 = f2.readlines()
+                    for line in lines2:
+                        d = line.rstrip().split(" ")
+                        overlapping_info[j.identifier][int(d[0])] = lines[int(d[1])].rstrip().split(" ")
             else:
-                j.access = 0
+                j.data[1] = 0
+
     # output
-    for i in nodes:
-        i.access = 0
+    for i in tree.all_nodes():
+        i.data[1] = 0
     for i in results:
-        check_access(i)
-        i.total_num = 0
-        i.covered_num = 0
-    for i in results:
-        res_node_proc(i, abundance, length, cov, overall_cov_cutoff)
+        check_access(i, tree)
+        i.data[2] = 0
+        i.data[3] = 0
+    for j in results:
+        res_node_proc(j, wa_cov_cutoff, length, cov, abundance, tree)
+    total_ab = 0
     if(len(results) > 0):
-        total_ab = get_total_ab(results)
+        for i in results:
+            total_ab += i.data[4]
     elif(len(alternative)!=0):
         results = []
         cov_list = {}
         for j in alternative:
-            cov_list[j] = j.covered_num/j.total_num
+            cov_list[j] = j.data[2]/j.data[3]
         r = max(cov_list, key=cov_list.get)
         if(cov_list[r]>=0.1):
-            check_access(r)
-            x = res_node_proc(r, abundance, length, cov, 0.1)
-            if(x == 1):
+            check_access(r, tree)
+            label = res_node_proc(j, 0.1, length, cov, abundance, tree)
+            if(label == 1):
                 results = [r]
-                total_ab = r.abundance
-
-    # output
+                total_ab = r.data[4]
     res = defaultdict(lambda:{})
     for i in results:
-        res[i.seq]['cls_ab'] = i.abundance
-        res[i.seq]['cls_per'] = i.abundance/total_ab
-        res[i.seq]['cls_cov'] = i.covered_num/i.total_num
-        res[i.seq]['cls_total_num'] = i.total_num
-        res[i.seq]['cls_covered_num'] = i.covered_num
-        res[i.seq]['strain'] = 0
-        res[i.seq]['s_ab'] = 0
-        if(i.strain != ""):
-            res[i.seq]['strain'] = i.strain
-            res[i.seq]['s_ab'] = i.abundance
+        res[i.identifier]['cls_ab'] = i.data[4]
+        res[i.identifier]['cls_per'] = i.data[4]/total_ab
+        res[i.identifier]['cls_cov'] = i.data[2]/i.data[3]
+        res[i.identifier]['cls_total_num'] = i.data[3]
+        res[i.identifier]['cls_covered_num'] = i.data[2]
+        res[i.identifier]['strain'] = 0
+        res[i.identifier]['s_ab'] = 0
+        if(i in GCF):
+            res[i.identifier]['strain'] = GCF[i]
+            res[i.identifier]['s_ab'] = i.data[4]
 
     end = time.time()
-    print('- The total running time of identification is ',str(end-start),' s\n')
+    print('- The total running time of tree search is ',str(end-start),' s\n')
     return res
-
 '''
-sp = "Mtb"
-
-cutoff = [0.1, 0.5, 1]
-#cutoff = [0.05, 0.1, 1]
-#cutoff = [0.03, 0.04, 1]
+cutoff_params = [0.1, 0.4, 1]
+db = "building/test_a"
 fq = ("reads_sim/1.fq", "reads_sim/2.fq")
-for i in range(5, 163):
-#for i in [163]:
-    if(i == 163):
-        x = " ".join((str(5*i+1), str(5*i+2), str(5*i+3), str(5*i+4), str(5*i+5), str(5*i+6), str(5*i+7), str(5*i+8)))
-    else:
-        x = " ".join((str(5*i+1), str(5*i+2), str(5*i+3), str(5*i+4), str(5*i+5)))
-    print(x)
-    os.system("python simulate.py "+x)
-    os.system("rm temp.fa")
-    results = identify_cluster(fq, "Lib/"+sp, cutoff)
-    for i in results.keys():
-        print(i, results[i])
-#fq = ("reads_sim/1.fq", "reads_sim/2.fq")
-#fq = ("reads/SRR4305105_1.fastq", "reads_real/SRR4305105_2.fastq")
-#fq = "/home/heruiliao2/Bacteria_Genome_Graph/Benchmark_Tools/Auto_All_tools/Sep_Sim_10x/GCF_009873455.fq"
-
-#fq = "reads/SRR4074296.fastq"
-#fq = "reads/SRR8146936.fastq"
-#fq = "reads/SRR8146969.fastq"
-fq = "/home/yongxinji2/tem/Build_SDB/Auto_Sim_Bench/Mtb_Auto/Mtb_Sim_Mix2_Diff/D7.fq"
-
-
-results = identify_cluster(fq, "Lib/"+sp, cutoff)
+results = identify_cluster(fq, db, cutoff_params)
 for i in results.keys():
     print(i, results[i])
 '''
+
+
