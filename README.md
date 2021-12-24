@@ -2,7 +2,7 @@
 One efficient and accurate strain-level composition analysis tool based on reference genomes and k-mers.
 
 
-### Contributor: Liao Herui and Ji Yongxin
+### Contributor: Liao Herui and Ji Yongxin (Ph.D of City University of Hong Kong, EE)
 ### E-mail: heruiliao2-c@my.cityu.edu.hk / yxjijms@gmail.com
 ### Version: V1.0
 
