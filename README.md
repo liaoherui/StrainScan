@@ -32,7 +32,7 @@ Or, you can install all dependencies of StrainScan and run it mannually.
 
 
 ## Usage
-One example about database construction and identification command can be found in "test_run.sh".
+One example about database construction and identification command can be found in "<b>test_run.sh</b>".
 
 ### Use StrainScan to build your own custom database.<BR/>
   `python StrainScan_build.py -i <Input_Genomes> -d <Database_Dir>`<BR/>
