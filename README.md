@@ -11,7 +11,7 @@ One efficient and accurate strain-level composition analysis tool based on refer
 * Python ==3.7.x
 * R
 * Sibeliaz ==1.2.2 (https://github.com/medvedevgroup/SibeliaZ)
-* Required python package: numpy==1.17.3, pandas==1.0.1, biopython==1.74, scipy==1.3.1, sklearn==0.23.1, bidict==0.21.3, psutil==5.7.0
+* Required python package: numpy==1.17.3, pandas==1.0.1, biopython==1.74, scipy==1.3.1, sklearn==0.23.1, bidict==0.21.3, treelib==1.6.1
 
 Make sure these programs have been installed before using StrainScan. 
 
