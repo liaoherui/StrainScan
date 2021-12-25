@@ -17,7 +17,7 @@ Make sure these programs have been installed before using StrainScan.
 
 ## Install (Linux or ubuntu only)
 
-Currently, yon can install StrainScan via [Anaconda](https://anaconda.org/) using the command below:<BR/>
+Currently, yon can install StrainScan via [Anaconda](https://anaconda.org/) using the commands below:<BR/>
 ####
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
@@ -29,7 +29,13 @@ Currently, yon can install StrainScan via [Anaconda](https://anaconda.org/) usin
 `chmod 755 library/dashing_s128`<BR/>
 ####
 
-Or, you can install all dependencies of StrainScan and run it mannually.
+Or, you can install all dependencies of StrainScan mannually and then run the commands below.
+
+`git clone https://github.com/liaoherui/StrainScan.git`<BR/>
+`cd StrainScan`<BR/>
+
+`chmod 755 library/jellyfish-linux`<BR/>
+`chmod 755 library/dashing_s128`<BR/>
 
 
 ## Usage
