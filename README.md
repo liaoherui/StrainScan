@@ -46,3 +46,24 @@ One example about database construction and identification commands can be found
 
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
+ 
+### Full command-line options
+<!---(Note: The initial idea of development of StrainScan is "Simpler is better". We do not want to burden users due to complicated usage of StrainScan. So the default parameters (some are inside the program) are simple but have good performance in our test, however, more useful parameters will be added for users who need them.)-->
+
+Identification - StrainScan.py (Default k-mer size: 31)
+```
+StrainScan - A kmer-based strain-level identification tool.
+
+Example: python StrainScan.py -i Sim_Data/GCF_003812785.fq -d DB_Small -o Test_Sim/GCF_003812785
+
+required arguments:
+    -i, --input_fastq             Input fastq data.
+    -d, --database_dir            Path of StrainScan database.
+
+optional arguments:
+    -h, --help                    Show help message and exit.
+    -o, --output_dir              The output directory. (Default: ./StrainScan_Result)
+    -k, --kmer_size               The size of k-mer, should be odd number. (Default: k=31)
+    -l, --low_dep                 This parameter can be set to "1" if the sequencing depth of input data is very low (e.g. < 5x). For super low depth ( < 1x ), you can use "-l 2" (default: -l 0)
+    -s, --minimum_snv_num         The minimum number of SNV at Layer-2 identification. (Default: s=40)
+```
