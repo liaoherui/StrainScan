@@ -56,7 +56,7 @@ S. epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/fi
 One example about database construction and identification commands can be found in "<b>test_run.sh</b>".
 
 ### Use StrainScan to build your own custom database.<BR/>
-  `python StrainScan_build.py -i <Input_Genomes> -d <Database_Dir>`<BR/>
+  `python StrainScan_build.py -i <Input_Genomes> -o <Database_Dir>`<BR/>
 
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
