@@ -75,6 +75,7 @@ Example:  python StrainScan_build.py -i <Input_genomes> -o <Database_Dir>
 
 required arguments:
      -i, --input_fasta             The path of input genomes. ("fasta" format)
+     
 optional arguments:
      -o, --output_dir              The output directory of constructed database. (Default: ./StrainScan_DB)
      -k, --kmer_size               The size of k-mer, should be odd number. (Default: k=31)
@@ -85,3 +86,14 @@ optional arguments:
      -x, --maxk_cutoff             Maximum k-mer number cutoff in a node of the cluster search tree (CST). (Default: x=30000)
      -r, --maxn_cutoff             Maximum cluster number for node reconstruction of the cluster search tree(CST). (Default: r=3000)
 ```
+
+## Output Format
+The output of StrainScan contains two parts. The first part is the final identification report file in text format. This file contains all identified strains and their predicted depth and relative abundance, etc. The second part is the strain identification report files inside each cluster.
+
+For your reference, two output files are given as example in the folder "Output_Example" in this repository. These files contain identification results of one single-strain and one two-strain (depth: 5X and 5X) simulated datasets, respectively.
+
+Explaination about the headers in the final identification report file (E.g. "Output_Example/GCA_000144385_5X_GCF_008868325_5X/final_report.txt") of StrainScan.
+Header    |	Description
+------------ | ------------- 
+Strain_ID | The numerical id of identified strains in the ascending order.
+
