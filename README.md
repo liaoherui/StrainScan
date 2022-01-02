@@ -103,7 +103,7 @@ Predicted_Depth (Enet) | The predicted sequencing depth of identified strains in
 Predicted_Depth (Ab\*cls_depth) | The final predicted sequencing depth of identified strains.
 Coverage  | The estimated k-mer-based coverage of identified strains.
 Coverd/Total_kmr  | The number of "covered" and "total" k-mers of identified strains.
-Valid_kmr | The valid k-mer refers to the k-mer belongs to the identified strain during the iterative matrix multiplication. More valid k-mers there are, more likely this strain exist.
-Remain_Coverage | The coverage calculated by "valid" / "total" k-mers.
-CV  | Extra information. 
+Valid_kmr | The valid k-mer refers to the k-mer belonging to the identified strain during the iterative matrix multiplication. More valid k-mers there are, more likely this strain exist.
+Remain_Coverage | The coverage calculated by "covered" / "total" k-mers during the iterative matrix multiplication.
+CV  | The number of "covered" and "valid" k-mers of identified strains.
 Exist evidence  | By default, identified strains with "relative abundance > 0.02 and coverage >0.7" will be marked as "\*". Strains with "\*" are more likely to exist. However, for low-depth strains, this parameter is not useful.
