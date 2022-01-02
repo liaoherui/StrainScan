@@ -37,6 +37,15 @@ Or, you can install all dependencies of StrainScan mannually and then run the co
 `chmod 755 library/jellyfish-linux`<BR/>
 `chmod 755 library/dashing_s128`<BR/>
 
+## Pre-built databases download
+The table below offers information about the pre-built databases of 6 bacterial species used in the paper. Users can download these databases and use them to identify strain directly.
+
+Species   |	Number of Strains |	Number of Clusters |	Download link
+------------ | ------------- | ------------- | ------------- 
+A. muciniphila  | 157 | 53  | [Google drive](https://drive.google.com/file/d/1Io096TYo_9vyvqOZi_fFTMKQi5sjA9vQ/view?usp=sharing)
+
+
+
 
 ## Usage
 One example about database construction and identification commands can be found in "<b>test_run.sh</b>".
