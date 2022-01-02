@@ -106,8 +106,8 @@ The output of StrainScan contains two parts. The first part is the final identif
 
 For your reference, two output files are given as example in the folder "Output_Example" in this repository. These files contain identification results of one single-strain and one two-strain (depth: 5X and 5X) simulated datasets, respectively.
 
-Explaination about the headers in the final identification report file (E.g. "Output_Example/GCA_000144385_5X_GCF_008868325_5X/final_report.txt") of StrainScan.
-Header    |	Description
+Explaination about the columns in the final identification report file (E.g. "Output_Example/GCA_000144385_5X_GCF_008868325_5X/final_report.txt") of StrainScan.
+Column_name   |	Description
 ------------ | ------------- 
 Strain_ID | The numerical id of identified strains in the ascending order.
 Strain_Name | The name of identified strains. (In the example output, the name refers to the NCBI RefSeq accession id)
