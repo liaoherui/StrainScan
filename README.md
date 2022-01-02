@@ -96,4 +96,14 @@ Explaination about the headers in the final identification report file (E.g. "Ou
 Header    |	Description
 ------------ | ------------- 
 Strain_ID | The numerical id of identified strains in the ascending order.
-
+Strain_Name | The name of identified strains. (In the example output, the name refers to the NCBI RefSeq accession id)
+Cluster_ID  | The cluster id of identified strains. (For cluster information, users can check "<Database_Dir>/Cluster_Result/hclsMap_95_recls.txt")
+Relative_Abundance_Inside_Cluster | The predicted relative abundance of identified strains inside the cluster.
+Predicted_Depth (Enet) | The predicted sequencing depth of identified strains inside the cluster using elastic net model.
+Predicted_Depth (Ab\*cls_depth) | The final predicted sequencing depth of identified strains.
+Coverage  | The estimated k-mer-based coverage of identified strains.
+Coverd/Total_kmr  | The number of "covered" and "total" k-mers of identified strains.
+Valid_kmr | The valid k-mer refers to the k-mer belongs to the identified strain during the iterative matrix multiplication. More valid k-mers there are, more likely this strain exist.
+Remain_Coverage | The coverage calculated by "valid" / "total" k-mers.
+CV  | Extra information. 
+Exist evidence  | By default, identified strains with "relative abundance > 0.02 and coverage >0.7" will be marked as "\*". Strains with "\*" are more likely to exist. However, for low-depth strains, this parameter is not useful.
