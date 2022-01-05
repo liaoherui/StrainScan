@@ -3,9 +3,9 @@ import scipy.stats as st
 import os
 from collections import defaultdict
 import random
-import uuid
 import numpy as np
 import time
+import uuid
 
 
 def read_tree_structure(db_dir): # tree.data [node category, accessibility, covered_num, total_num, abundance]
@@ -13,15 +13,25 @@ def read_tree_structure(db_dir): # tree.data [node category, accessibility, cove
     f = open(db_dir+"/tree_structure.txt", "r")
     lines = f.readlines()
     tree = Tree()
-    for i in range(1, len(lines)+1):
-        temp = lines[-i].rstrip().split("\t")
-        if(i == 1):
+    sequences = []
+    if(lines[-1].split("\t")[1]!="N"):
+        for i in range(0, len(lines)):
+            if(lines[i].split("\t")[1]=='N'):
+                break
+        for j in range(i, len(lines)):
+            sequences.append(lines[j])
+        for j in range(0, i):
+            sequences.append(lines[j])
+    else:
+        sequences = reversed(lines)
+    for i in sequences:
+        temp = i.rstrip().split("\t")
+        if(temp[1] == "N"):
             tree.create_node(identifier=int(temp[0]))
         else:
             tree.create_node(identifier=int(temp[0]), parent=int(temp[1]))
         if(len(temp) == 4):
             GCF[tree.get_node(int(temp[0]))] = temp[3]  # cluster with size 1
-    #tree.show()
     return tree, GCF
 
 
@@ -54,22 +64,16 @@ def jellyfish_count(fq_path, db_dir):
     if(type(fq_path) != str):
         fq_path = " ".join(fq_path)
     dir_jf = os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
-    #jf_res_path = "temp.fa"
-    # test
-    #os.system("rm temp.fa")
-    uid=uuid.uuid1().hex
-    jf_res_path='temp_'+uid+'.fa'
-    if(os.path.exists(jf_res_path) == False):
-        os.system(dir_jf+" count -m 31 -s 100M -t 8 --if "+db_dir+"/kmer.fa -o temp_"+uid+".jf "+fq_path)
-        os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
-        os.system("rm temp_"+uid+".jf")
+    uid = uuid.uuid1().hex
+    jf_res_path = "temp_"+uid+".fa"
+    os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + fq_path)
+    os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
+    os.system("rm temp_"+uid+".jf")
     kmer_index_dict = {}
     f = open(db_dir+"/kmer.fa", "r")
     lines = f.readlines()
-    index = 0
     for i in range(0, int(len(lines)/2)):
-        kmer_index_dict[lines[i*2+1].rstrip()] = index
-        index += 1
+        kmer_index_dict[lines[i*2+1].rstrip()] = i
     f.close()
     match_results = {}
     f = open(jf_res_path, "r")
@@ -148,11 +152,14 @@ def adjust_profile(node, results, valid_kmers, length, abundance, cov, match_res
     k_profile = []
     f = open(db_dir+"/kmers/"+str(node.identifier), "r")
     lines = f.readlines()
-    d = set(map(int, lines[0].rstrip().split(" ")))
+    d = list(map(int, lines[0].rstrip().split(" ")))
     for i in results:
-        if(i.identifier in overlapping_info and node.identifier in overlapping_info):
-            overlap[i.identifier] = set(overlapping_info[i.identifier][node.identifier])
+        if(i.identifier in overlapping_info and node.identifier in overlapping_info[i.identifier]):
+            overlap[i.identifier] = set([])
+            for k in overlapping_info[i.identifier][node.identifier]:
+                overlap[i.identifier].add(d[k])
             delete = overlap[i.identifier] | delete
+    d = set(d)
     if(len(d) - len(delete) >= 1000):
         remain = d - delete
         valid_kmer = valid_kmers & remain
@@ -182,7 +189,7 @@ def adjust_profile(node, results, valid_kmers, length, abundance, cov, match_res
             temp_match1 = {}
             i = j[0]
             if(i.identifier in overlap):
-                overlapped_kmers = valid_kmer & set(overlap[i.identifier])
+                overlapped_kmers = valid_kmer&overlap[i.identifier]
                 for k in overlapped_kmers:
                     if(temp_match[k] > 0):
                         temp_match1[k] = temp_match[k]
@@ -258,8 +265,16 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
                 node.data[0] = 2
             group_label.append((node, node.data[0]))
             length[node], k_profile = match_node(match_results, db_dir, node.identifier, valid_kmers)
-            cov[node] = len(k_profile)/length[node]
-            abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
+            if(length[node]<500):
+                abundance[node] = 0
+                cov[node] = 0
+                length[node] = 0
+                pending.append(tree.children(node.identifier))
+                print("%d:    weak"%node.identifier)
+                group_label.append((node, 0))
+            else:
+                cov[node] = len(k_profile)/length[node]
+                abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
         else:
             correction_label = 1
             node.data[0] = adjust_profile(node, results, valid_kmers, length, abundance, cov, match_results, cov_cutoff, db_dir, overlapping_info)
@@ -317,7 +332,8 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         else:
             i.data[1] = 1
         if(i not in leaves):
-            pending.append(tree.children(i.identifier))
+            if(tree.children(i.identifier) not in pending):
+                pending.append(tree.children(i.identifier))
         else:
             res_temp.append(i)
     del pending[0]
@@ -376,7 +392,6 @@ def identify_cluster(fq_path, db_dir, cutoff):
 
     while(len(pending)!=0):
         res_temp = []
-        search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info)
         for j in res_temp:
             label = res_node_proc(j, wa_cov_cutoff, length, cov, abundance, tree)
             alternative.append(j)
@@ -390,7 +405,7 @@ def identify_cluster(fq_path, db_dir, cutoff):
                     lines2 = f2.readlines()
                     for line in lines2:
                         d = line.rstrip().split(" ")
-                        overlapping_info[j.identifier][int(d[0])] = lines[int(d[1])].rstrip().split(" ")
+                        overlapping_info[j.identifier][int(d[0])] = map(int, lines[int(d[1])].rstrip().split(" "))
             else:
                 j.data[1] = 0
 
@@ -437,11 +452,9 @@ def identify_cluster(fq_path, db_dir, cutoff):
     return res
 '''
 cutoff_params = [0.1, 0.4, 1]
-db = "building/test_a"
+db = "building/Lib/hiv/"
 fq = ("reads_sim/1.fq", "reads_sim/2.fq")
 results = identify_cluster(fq, db, cutoff_params)
 for i in results.keys():
     print(i, results[i])
 '''
-
-
