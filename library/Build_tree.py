@@ -245,7 +245,11 @@ def build_tree(arg):
     for i in lines[0].rstrip().split("\t")[1:]:
         temp = i[i.rfind('/')+1:].split(".")[0]
         fna_seq[temp] = index
-        fna_path[index] = i
+        # test
+        if("Cae" not in cls_file):
+            fna_path[index] = i
+        else:
+            fna_path[index] = "/home/heruiliao2/Bacteria_Genome_Graph/Ref_Genome/"+i[i.rfind("/")+1:]   # cae test
         index += 1
     dist = []
     for line in lines[1:]:
@@ -279,6 +283,7 @@ def build_tree(arg):
 
     # leaf nodes check
     recls_label = 0
+
     leaves_check = []
     check_waitlist = reversed(leaves)
     while(True):
@@ -308,7 +313,7 @@ def build_tree(arg):
                 kmer_t = kmer_t - Lv[j.identifier]
             for j in diff_nodes:
                 kmer_t = kmer_t - spec[j.identifier]
-            print(str(i.identifier) + " checking", end = "\t")
+            print(str(i.identifier) + " checking", end = "\t"
             print(len(kmer_t))
             if(len(kmer_t) < minsize):
                 leaves_check.append(i)
@@ -359,7 +364,10 @@ def build_tree(arg):
 
     # rebuild identifiers
     all_nodes = tree.all_nodes()
+    all_leaves_id = set([])
     leaves = set(tree.leaves())
+    for i in leaves:
+        all_leaves_id.add(i.identifier)
     id_mapping = bidict.bidict()
     index = 1
     index_internal = len(leaves)+1
@@ -423,8 +431,6 @@ def build_tree(arg):
     # from bottom to top (unique k-mers)
     uniq_temp = defaultdict(set)
     rebuilt_nodes = []
-    all_identifier = set(all_identifier)
-    leaves_identifier = set(leaves_identifier)
     descendant = defaultdict(set)  # including itself
     ancestor = defaultdict(set)
     descendant_leaves = defaultdict(set)
@@ -445,6 +451,7 @@ def build_tree(arg):
             uniq_temp[child_a.identifier] = uniq_temp[child_a.identifier] - uniq_temp[i.identifier]
             uniq_temp[child_b.identifier] = uniq_temp[child_b.identifier] - uniq_temp[i.identifier]
         descendant[i.identifier].add(i.identifier)
+    all_nodes_id = set(id_mapping.keys())
     # remove overlapping
     for i in reversed(all_nodes):
         print(str(id_mapping[i.identifier]) + " k-mer set building...")
@@ -453,7 +460,7 @@ def build_tree(arg):
             kmer_t = uniq_temp[i.identifier]
         else:
             diff = {}
-            temp = all_identifier - descendant[i.identifier] - set([tree.siblings(i.identifier)[0].identifier]) - ancestor[i.identifier]
+            temp = all_nodes_id - descendant[i.identifier] - set([tree.siblings(i.identifier)[0].identifier]) - ancestor[i.identifier]
             for j in temp:
                 diff[j] = len(uniq_temp[j])
             a = sorted(diff.items(), key=lambda x: x[1], reverse=True)
@@ -462,7 +469,7 @@ def build_tree(arg):
                 k = j[0]
                 kmer_t = kmer_t - uniq_temp[k]
             # remove special k-mers
-            temp = leaves_identifier - descendant_leaves[i.identifier]
+            temp = all_leaves_id - descendant_leaves[i.identifier]
             diff = {}
             for j in temp:
                 diff[j] = len(spec[j])
@@ -470,6 +477,7 @@ def build_tree(arg):
             for j in a:
                 k = j[0]
                 kmer_t = kmer_t - spec[k]
+        print(diff, len(kmer_t))
         if(len(kmer_t) < minsize and overload_label==0):
             rebuilt_nodes.append(i)
             print("%d waiting for reconstruction..." % id_mapping[i.identifier])
@@ -511,7 +519,6 @@ def build_tree(arg):
             kmer_t = set([])
             for j in range(0, maxsize):
                 kmer_t.add(temp[j][0])
-        delete(Lv, spec, del_label)
         nkmer = {}
         f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
         index = 0
@@ -525,9 +532,12 @@ def build_tree(arg):
         for j in lower_leaves:
             temp = Lv[j.identifier] & kmer_t
             if(len(temp)>0):
-                overlapping[j.identifier][i.identifier] = set([])
+                ii = id_mapping[i.identifier]
+                jj = id_mapping[j.identifier]
+                overlapping[jj][ii] = set([])
                 for k in temp:
-                    overlapping[j.identifier][i.identifier].add(nkmer[k])
+                    overlapping[jj][ii].add(nkmer[k])
+        delete(Lv, spec, del_label)
 
     for i in overlapping:
         f = open(tree_dir+"/overlapping_info/"+str(i), "w")
@@ -547,7 +557,7 @@ def build_tree(arg):
     # final saving
     f = open(tree_dir+"/reconstructed_nodes.txt", "w")
     for i in rebuilt_nodes:
-        f.write("%d\n"%i.identifier)
+        f.write("%d\n"%id_mapping[i.identifier])
     f.close()
 
     f = open(tree_dir+"/node_length.txt", "w")
@@ -595,65 +605,22 @@ def cal_cls_dist(dist, fna_i, fna_j):
     return max(temp)
 
 
+def get_difference(node, depths, all_nodes, descendant_leaves):
+    diff = []
+    depth_cutoff = depths[node]
+    for i in all_nodes:
+        if(depths[i]==depth_cutoff and i!=node):
+            diff += descendant_leaves[i]
+    return diff
+
+'''
 params = [0.8, 1000, 30000, 3000]
 
-# TESt
-'''
-build_tree(["/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/DB_Cae_Paper/Cluster_Result/distance_matrix.txt",
-"/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/DB_Cae_Paper/Cluster_Result/hclsMap_95_recls.txt",
-"test/",31, params])
-'''
-
-'''
-# Akk
-build_tree(["L1_required_data/Akk/distance_matrix.txt",
-"L1_required_data/Akk/hclsMap_95_recls.txt",
-"test_a",
-31, params])
-'''
-'''
-# Cae
-build_tree(["L1_required_data/Cae/distance_matrix.txt",
-"L1_required_data/Cae/hclsMap_95_recls.txt",
-"test_c",
-31, params])
-'''
-'''
 # Pre
 build_tree(["L1_required_data/Pre/distance_matrix.txt",
 "L1_required_data/Pre/hclsMap_95_recls.txt",
 "Lib/Pre",
 31, params])
 '''
-'''
-# Mtb
-build_tree(["L1_required_data/Mtb/distance_matrix.txt",
-"L1_required_data/Mtb/hclsMap_95_recls.txt",
-"Lib/Mtb",
-31, params])
-'''
-'''
-# Ecoli
-build_tree(["L1_required_data/Ecoli/distance_matrix.txt",
-"L1_required_data/Ecoli/hclsMap_95_recls.txt",
-"Lib/Ecoli",
-31, params])
-'''
-'''
-# Sep
-build_tree(["L1_required_data/Sep/distance_matrix.txt",
-"L1_required_data/Sep/hclsMap_95_recls.txt",
-"Lib/Sep",
-31, params])
-'''
-'''
-# hiv
-params = [0.8, 100, 30000, 3000]
-build_tree(["/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/Github_test_Virus/StrainScan/DB_HIV/Cluster_Result/distance_matrix.txt",
-"/home/heruiliao2/Bacteria_Genome_Graph/StrainScan_Merge_Version/Github_test_Virus/StrainScan/DB_HIV/Cluster_Result/hclsMap_95_recls.txt",
-"Lib/hiv",
-31, params])
-'''
-
 
 
