@@ -392,6 +392,7 @@ def identify_cluster(fq_path, db_dir, cutoff):
 
     while(len(pending)!=0):
         res_temp = []
+        search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info)
         for j in res_temp:
             label = res_node_proc(j, wa_cov_cutoff, length, cov, abundance, tree)
             alternative.append(j)
