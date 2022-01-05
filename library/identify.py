@@ -450,11 +450,3 @@ def identify_cluster(fq_path, db_dir, cutoff):
     end = time.time()
     print('- The total running time of tree search is ',str(end-start),' s\n')
     return res
-'''
-cutoff_params = [0.1, 0.4, 1]
-db = "building/Lib/hiv/"
-fq = ("reads_sim/1.fq", "reads_sim/2.fq")
-results = identify_cluster(fq, db, cutoff_params)
-for i in results.keys():
-    print(i, results[i])
-'''

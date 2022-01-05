@@ -309,7 +309,7 @@ def build_tree(arg):
                 kmer_t = kmer_t - Lv[j.identifier]
             for j in diff_nodes:
                 kmer_t = kmer_t - spec[j.identifier]
-            print(str(i.identifier) + " checking", end = "\t"
+            print(str(i.identifier) + " checking", end = "\t")
             print(len(kmer_t))
             if(len(kmer_t) < minsize):
                 leaves_check.append(i)
@@ -473,7 +473,6 @@ def build_tree(arg):
             for j in a:
                 k = j[0]
                 kmer_t = kmer_t - spec[k]
-        print(diff, len(kmer_t))
         if(len(kmer_t) < minsize and overload_label==0):
             rebuilt_nodes.append(i)
             print("%d waiting for reconstruction..." % id_mapping[i.identifier])
@@ -608,15 +607,3 @@ def get_difference(node, depths, all_nodes, descendant_leaves):
         if(depths[i]==depth_cutoff and i!=node):
             diff += descendant_leaves[i]
     return diff
-
-'''
-params = [0.8, 1000, 30000, 3000]
-
-# Pre
-build_tree(["L1_required_data/Pre/distance_matrix.txt",
-"L1_required_data/Pre/hclsMap_95_recls.txt",
-"Lib/Pre",
-31, params])
-'''
-
-
