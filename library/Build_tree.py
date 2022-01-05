@@ -245,11 +245,7 @@ def build_tree(arg):
     for i in lines[0].rstrip().split("\t")[1:]:
         temp = i[i.rfind('/')+1:].split(".")[0]
         fna_seq[temp] = index
-        # test
-        if("Cae" not in cls_file):
-            fna_path[index] = i
-        else:
-            fna_path[index] = "/home/heruiliao2/Bacteria_Genome_Graph/Ref_Genome/"+i[i.rfind("/")+1:]   # cae test
+        fna_path[index] = i
         index += 1
     dist = []
     for line in lines[1:]:
