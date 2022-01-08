@@ -132,7 +132,7 @@ def get_candidate_arr(ix,iy):
 	candidate=hc[0][0]
 	return candidate,hc[0][1]
 
-def optimize_dominat_y(ix,iy):
+def optimize_dominat_y(ix,iy,ld):
 	c=0
 	res=[]
 	#res_std=[]
@@ -150,8 +150,12 @@ def optimize_dominat_y(ix,iy):
 			#res_std.append(0)
 			#res_cv.append(0)
 		else:
-			f25=np.percentile(da_noz,5,interpolation='nearest')
-			f75=np.percentile(da_noz,95,interpolation='nearest')
+			if ld==1:
+				f25=np.percentile(da_noz,5,interpolation='nearest')
+				f75=np.percentile(da_noz,95,interpolation='nearest')
+			else:
+				f25=np.percentile(da_noz,1,interpolation='nearest')
+				f75=np.percentile(da_noz,99,interpolation='nearest')
 			tem_iy=np.copy(iy)
 			tem_iy[tem_iy<f25]=0
 			tem_iy[tem_iy>f75]=0
@@ -171,6 +175,7 @@ def optimize_dominat_y(ix,iy):
 	res=np.array(res)
 	dominat=np.where(res==np.max(res))[0][0]
 	#print(res)
+	#exit()
 	return dominat
 
 def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatrix,all_cls,l2,msn):
@@ -224,7 +229,7 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 	 
 	cutoff=msn*ksize
 	#exit()
-	def Pre_Scan(pX,py,sid,cutoff,cls_cov,py_u):
+	def Pre_Scan(pX,py,sid,cutoff,cls_cov,py_u,l2):
 		strain_cov={} # Strain -> [Coverage,covered_kmr,total_kmr]
 		strain_val={} # Strain -> Valid kmr
 		strain_remainc={}
@@ -238,6 +243,7 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		cov_arr=cal_cov_all(pX,py)
 		cov_arr=np.array(cov_arr)
 		#print(cov_arr)
+		#print(sid)
 		#exit()
 		dominat_avg_depth=0
 		default_cov=0.7
@@ -245,13 +251,17 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		if cls_cov>=0.9:
 			default_cov=0.9
 		'''
-		
+		ld=0
 		if np.max(cov_arr)>default_cov: # Filter strains that cov < 0.7
 			cov_arr[cov_arr<=default_cov]=0
 			cov_arr[cov_arr>default_cov]=1
 			pXt_tem=((pXt.T)*cov_arr).T
 		else:
 			pXt_tem=pXt
+			if np.max(cov_arr)<0.01:
+				l2=2
+			else:
+				ld=1
 		
 		#pXt_tem=pXt
 		#py_tem=py*py_u
@@ -273,10 +283,10 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 				dominat_avg_depth=get_avg_depth(dominat,pX,py)
 		else:
 			if np.sum(py_u)>0:
-				dominat=optimize_dominat_y(pX,py_u)
+				dominat=optimize_dominat_y(pX,py_u,ld)
 				dominat_avg_depth=get_avg_depth(dominat,pX,py_u)
 			else:
-				dominat=optimize_dominat_y(pX,py)
+				dominat=optimize_dominat_y(pX,py,ld)
 				dominat_avg_depth=get_avg_depth(dominat,pX,py)
 			#dominat_avg_depth=get_avg_depth(dominat,pX,py)
 		##dominat_global=int(data_frame1.columns[dominat])
@@ -339,7 +349,7 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 				break
 		return out_columns,out_strain,strain_cov,strain_val,final_src,dominat_avg_depth
 
-	out_columns,out_strains,strain_cov,strain_val,final_src,dominat_avg_depth=Pre_Scan(pX,py,sid,cutoff,cls_cov,py_u)
+	out_columns,out_strains,strain_cov,strain_val,final_src,dominat_avg_depth=Pre_Scan(pX,py,sid,cutoff,cls_cov,py_u,l2)
 	#print(out_strains,res_std,res_cv)
 	#print(out_strains)
 	#exit()
