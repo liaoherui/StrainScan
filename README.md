@@ -42,12 +42,12 @@ The table below offers information about the pre-built databases of 6 bacterial 
 
 Species   |	Source  | Number of Strains |	Number of Clusters |	Download link
 ------------ | -------------| ------------- | ------------- | ------------- 
-Akkermansia muciniphila |  NCBI | 157 | 53  | [Google drive](https://drive.google.com/file/d/1Io096TYo_9vyvqOZi_fFTMKQi5sjA9vQ/view?usp=sharing)
-Cutibacterium acnes |  NCBI | 275 | 28  | [Google drive](https://drive.google.com/file/d/1Tvoz7qsfwBlj7gbRoW9ejIGYhszRua6b/view?usp=sharing)
-Prevotella copri |  NCBI | 112 | 51  | [Google drive](https://drive.google.com/file/d/1_ep-rSX0-bzvECpyuo-viuO7nXb1dkyz/view?usp=sharing)
-Escherichia coli |  NCBI | 1433 | 823  | [Google drive](https://drive.google.com/file/d/14c0rqVJNlhYb4T2JdhuVeeMsG_E0fsS8/view?usp=sharing)
-Mycobacterium tuberculosis |  NCBI | 792 | 25  | [Google drive](https://drive.google.com/file/d/1529TjKmPrG_kqTnE2NJcXjm0Bm04c-ww/view?usp=sharing)
-Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1fwGTe5WuzmJOYn1bsc8UzsIGqsmMyZb2/view?usp=sharing)
+Akkermansia muciniphila |  NCBI | 157 | 53  | [Google drive](https://drive.google.com/file/d/1BAoi5u4JuPTapULjbZRgaBBW5JrNYd7P/view?usp=sharing)
+Cutibacterium acnes |  NCBI | 275 | 28  | [Google drive](https://drive.google.com/file/d/15YbWWMsao8Rzqw_6PiARSwA3ahvNjW_w/view?usp=sharing)
+Prevotella copri |  NCBI | 112 | 51  | [Google drive](https://drive.google.com/file/d/1yclHCQYpatDChOO2lVjQorQ43K4H1ltz/view?usp=sharing)
+Escherichia coli |  NCBI | 1433 | 823  | [Google drive](https://drive.google.com/file/d/1otmTt98xu8YUiTh4kQDKo3e6wMaOpWSV/view?usp=sharing)
+Mycobacterium tuberculosis |  NCBI | 792 | 25  | [Google drive](https://drive.google.com/file/d/1jjpDVVN7yD4f7r8yp_30cIgfTJ5KoGUt/view?usp=sharing)
+Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1chSr7LsY24o4xQUXc0tF6AUnbcHxqo2J/view?usp=sharing)
 
 
 
