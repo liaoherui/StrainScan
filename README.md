@@ -1,4 +1,4 @@
-# StrainScan - Identify bacterial strain(s) in your metagenomic sequencing data.
+# StrainScan 
 One efficient and accurate strain-level composition analysis tool based on reference genomes and k-mers.
 
 
