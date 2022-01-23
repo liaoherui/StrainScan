@@ -49,6 +49,12 @@ Escherichia coli |  NCBI | 1433 | 823  | [Google drive](https://drive.google.com
 Mycobacterium tuberculosis |  NCBI | 792 | 25  | [Google drive](https://drive.google.com/file/d/1jjpDVVN7yD4f7r8yp_30cIgfTJ5KoGUt/view?usp=sharing)
 Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1wwGubVO9F4r0pwHqQWQ2_NC151WDn96I/view?usp=sharing)
 
+You can also use bash scripts in the folder "Download_DB_script" to download the pre-built databases from Google drive. For example,
+ 
+ `cd Download_DB_script`<BR/>
+ `sh ecoli_db.sh`<BR/>
+
+
 
 
 
