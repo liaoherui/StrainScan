@@ -47,7 +47,7 @@ Cutibacterium acnes |  NCBI | 275 | 28  | [Google drive](https://drive.google.co
 Prevotella copri |  NCBI | 112 | 51  | [Google drive](https://drive.google.com/file/d/1yclHCQYpatDChOO2lVjQorQ43K4H1ltz/view?usp=sharing)
 Escherichia coli |  NCBI | 1433 | 823  | [Google drive](https://drive.google.com/file/d/1otmTt98xu8YUiTh4kQDKo3e6wMaOpWSV/view?usp=sharing)
 Mycobacterium tuberculosis |  NCBI | 792 | 25  | [Google drive](https://drive.google.com/file/d/1jjpDVVN7yD4f7r8yp_30cIgfTJ5KoGUt/view?usp=sharing)
-Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1chSr7LsY24o4xQUXc0tF6AUnbcHxqo2J/view?usp=sharing)
+Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1wwGubVO9F4r0pwHqQWQ2_NC151WDn96I/view?usp=sharing)
 
 
 
