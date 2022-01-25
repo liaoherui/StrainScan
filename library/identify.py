@@ -221,7 +221,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
         print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
         if(abundance[node]>=ab_cutoff):
-            pending.append(tree.children(node.identifier))
+            pending.append(list(reversed(tree.children(node.identifier))))
         del pending[0]
         return 1
     elif(len(group)==1 and group[0].data[0]==0):    # root node is weak
@@ -231,7 +231,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         cov[node] = 0
         abundance[node] = 0
         print("%d:    weak"%node.identifier)
-        pending.append(tree.children(node.identifier))
+        pending.append(list(reversed(tree.children(node.identifier))))
         del pending[0]
         return 1
     print("parent node: %d ->"%tree.parent(group[0].identifier).identifier)
@@ -243,7 +243,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
             abundance[node] = 0
             cov[node] = 0
             length[node] = 0
-            pending.append(tree.children(node.identifier))
+            pending.append(list(reversed(tree.children(node.identifier))))
         del pending[0]
 
     correction_label = 0
@@ -254,7 +254,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
             cov[node] = 0
             length[node] = 0
             node.data[1] = 2
-            pending.append(tree.children(node.identifier))
+            pending.append(list(reversed(tree.children(node.identifier))))
             print("%d:    weak"%node.identifier)
             group_label.append((node, 0))
             continue
@@ -269,7 +269,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
                 abundance[node] = 0
                 cov[node] = 0
                 length[node] = 0
-                pending.append(tree.children(node.identifier))
+                pending.append(list(reversed(tree.children(node.identifier))))
                 print("%d:    weak"%node.identifier)
                 group_label.append((node, 0))
             else:
@@ -333,7 +333,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
             i.data[1] = 1
         if(i not in leaves):
             if(tree.children(i.identifier) not in pending):
-                pending.append(tree.children(i.identifier))
+                pending.append(list(reversed(tree.children(i.identifier))))
         else:
             res_temp.append(i)
     del pending[0]
