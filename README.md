@@ -1,5 +1,5 @@
 # StrainScan 
-One efficient and accurate strain-level composition analysis tool based on reference genomes and k-mers.
+One efficient and accurate strain-level microbiome composition analysis tool based on reference genomes and k-mers.
 
 
 ### Contributor: Liao Herui and Ji Yongxin (Ph.D of City University of Hong Kong, EE)
