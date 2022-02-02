@@ -127,3 +127,10 @@ Valid_kmr | The valid k-mer refers to the k-mer belonging to the identified stra
 Remain_Coverage | The coverage calculated by "covered" / "total" k-mers during the iterative matrix multiplication.
 CV  | The number of "covered" and "valid" k-mers of identified strains.
 Exist evidence  | By default, identified strains with "relative abundance > 0.02 and coverage >0.7" will be marked as "\*". Strains with "\*" are more likely to exist. However, for low-depth strains, this parameter is not useful.
+
+## References:
+
+how to cite this tool:
+```
+Liao, H., Ji, Y., & Sun, Y. Accurate strain-level microbiome composition analysis from short reads. bioRxiv. 2022. https://doi.org/10.1101/2022.01.26.477962
+```
