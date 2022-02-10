@@ -10,6 +10,7 @@ One efficient and accurate strain-level microbiome composition analysis tool bas
 ### Overview of StrainScan:
 <div align=center><img width="500" height="500" src="https://user-images.githubusercontent.com/22760266/152946273-b39c5c10-9a96-4572-b409-e7a8db53d9e4.png" alt="strainscan_overview_new"></div>
 
+---------------------------------------------------------------------------
 ### Dependencies:
 * Python ==3.7.x
 * R
