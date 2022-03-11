@@ -96,7 +96,7 @@ def main():
 		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.05,1])
 		l2=1
 	elif ldep==2:
-		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.01,1])
+		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.005,0.01,1])
 		l2=1
 
 	#cls_dict.update(uniq_strain)
