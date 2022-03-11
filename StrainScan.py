@@ -93,7 +93,7 @@ def main():
 			print('Warning: No clusters can be detected!')
 			exit()
 	elif ldep==1:
-		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.05,0.05,1])
+		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.05,1])
 		l2=1
 	elif ldep==2:
 		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.01,1])
