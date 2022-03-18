@@ -133,7 +133,7 @@ Coverd/Total_kmr  | The number of "covered" and "total" k-mers of identified str
 Valid_kmr | The valid k-mer refers to the k-mer belonging to the identified strain during the iterative matrix multiplication. More valid k-mers there are, more likely this strain exist.
 Remain_Coverage | The coverage calculated by "covered" / "total" k-mers during the iterative matrix multiplication.
 CV  | The number of "covered" and "valid" k-mers of identified strains.
-Exist evidence  | By default, identified strains with "relative abundance > 0.02 and coverage >0.7" will be marked as "\*". Strains with "\*" are more likely to exist. However, for low-depth strains, this parameter is not useful.
+Exist evidence  | By default, identified strains with "relative abundance > 0.02 and coverage >0.7" will be marked as "\*". Strains with "\*" are more likely to exist. However, for low-depth samples, this parameter may be not useful.
 
 ## References:
 
