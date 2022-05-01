@@ -25,7 +25,7 @@ One efficient and accurate strain-level microbiome composition analysis tool bas
 Make sure these programs have been installed before using StrainScan. 
 
 ## Install (Linux or ubuntu only)
-The first way to install StrainScan, is to use [bioconda](https://bioconda.github.io/).
+Option 1 - The first way to install StrainScan, is to use [bioconda](https://bioconda.github.io/).
 Once you have bioconda environment installed, install package strainscan:
 
 	conda install -c bioconda strainscan
@@ -37,7 +37,7 @@ Command (Not bioconda)    |	Command (bioconda)
 python StrainScan.py -h | strainscan -h
 python StrainScan_build.py -h | strainscan_build -h
 
-Also, yon can install StrainScan via [Anaconda](https://anaconda.org/) using the commands below:<BR/>
+Option 2 - Also, yon can install StrainScan via [Anaconda](https://anaconda.org/) using the commands below:<BR/>
 ####
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
@@ -52,7 +52,7 @@ Note: if the command `conda env create -f environment.yaml` outputs an error (wh
 
 ####
 
-Or, you can install all dependencies of StrainScan mannually and then run the commands below.
+Option 3 - Or, you can install all dependencies of StrainScan mannually and then run the commands below.
 
 `git clone https://github.com/liaoherui/StrainScan.git`<BR/>
 `cd StrainScan`<BR/>
