@@ -86,10 +86,15 @@ One example about database construction and identification commands can be found
 
 ### Use StrainScan to build your own custom database.<BR/>
   `python StrainScan_build.py -i <Input_Genomes> -o <Database_Dir>`<BR/>
+<BR/>eg:
+  `python StrainScan.py -i Sim_Data/GCF_003812785.fq -d DB_Small -o Test_Sim/GCF_003812785`<BR/>
+ or
+  `python StrainScan.py -i Sim_Data_mul/GCA_000144385_5X_GCF_008868325_5X.fq -d  DB_Small -o Test_Sim/GCA_000144385_5X_GCF_008868325_5X `<BR/>
 
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
- 
+<BR/>eg:
+  `python StrainScan_build.py -i Test_genomes -o DB_Small`<BR/>
 ### Full command-line options
 <!---(Note: The initial idea of development of StrainScan is "Simpler is better". We do not want to burden users due to complicated usage of StrainScan. So the default parameters (some are inside the program) are simple but have good performance in our test, however, more useful parameters will be added for users who need them.)-->
 
