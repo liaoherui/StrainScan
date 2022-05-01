@@ -48,7 +48,7 @@ Option 2 - Also, yon can install StrainScan via [Anaconda](https://anaconda.org/
 `chmod 755 library/jellyfish-linux`<BR/>
 `chmod 755 library/dashing_s128`<BR/>
 
-Note: if the command `conda env create -f environment.yaml` outputs an error (which is most likely caused by your machine): `ResolvePackageNotFound...`, then you try the command `conda env create -f environment_candidate.yaml`
+Note: if the command `conda env create -f environment.yaml` outputs an error (which is most likely caused by your machine): `ResolvePackageNotFound...`, then you can try the command `conda env create -f environment_candidate.yaml`
 
 ####
 
