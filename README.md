@@ -103,7 +103,7 @@ Identification - StrainScan.py (Default k-mer size: 31)
 ```
 StrainScan - A kmer-based strain-level identification tool.
 
-Example: python StrainScan.py -i Sim_Data/GCF_003812785.fq -d DB_Small -o Test_Sim/GCF_003812785
+Example: python StrainScan.py -i  <Input_reads> -d <Database_Dir> -o <Output_Dir>
 
 required arguments:
     -i, --input_fastq             Input fastq data.
