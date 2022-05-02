@@ -1,4 +1,4 @@
-[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/strainscan)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://bioconda.github.io/recipes/strainscan/README.html?highlight=strainscan)
 # StrainScan 
 One efficient and accurate strain-level microbiome composition analysis tool based on reference genomes and k-mers. StrainScan takes reference database and sequencing data as input, outputs strain-level microbiome compistion analysis report.
 
