@@ -1,10 +1,14 @@
 import re
 import os
+import psutil
 from collections import defaultdict
 from Bio import SeqIO
 import seqpy
 import scipy.sparse as sp
 import numpy as np
+import multiprocessing
+import time
+import pickle
 
 def load_cls(cls95):
 	d2=defaultdict(lambda:{}) # id -> {strains}
@@ -64,39 +68,59 @@ def build_cls_kmer(infa_strains,cls95):
 	dlabel=build_kmer_dict(ddir,k,ds2id,cls_num) # kmer -> {'c1':'','c2':'',...}
 	return dlabel,did2s,cls_num
 
-def build_omatrix(infa_strains,cls95,cls_dir):
-	import pickle
+
+#def build_parallel(filename,did2s,cls_dir,cls_num,dlabel)
+def build_parallel(arg):
+	filename=arg[0]
+	did2s=arg[1]
+	cls_dir=arg[2]
+	cls_num=arg[3]
+	dlabel=arg[4]
+
+	cid=re.sub('C','',filename)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(cid)+'- Build overlap matrix...',flush=True)
+	cid=int(cid)
+	if len(did2s[cid])>1:
+		kid=pickle.load(open(cls_dir+'/'+filename+'/all_kid.pkl','rb'))
+		row=len(kid)
+		column=len(range(cls_num))
+		for k in kid:
+			kid[k]=int(kid[k])
+		mat=sp.dok_matrix((row,column), dtype=np.int8)
+		for k in kid:
+			mat[kid[k]-1,list(dlabel[k].keys())]=1
+		mat=mat.tocsr()
+		sp.save_npz(cls_dir+'/'+filename+'/overlap_matrix.npz',mat)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(cid)+u'- Current Memory Usage: %.4f GB' % (psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024 / 1024) )
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(cid)+'- Omatrix finished',flush=True)
+	return
+
+	
+	
+
+def build_omatrix(infa_strains,cls95,cls_dir,threads):
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: - Build omatrix cls k-mer dict...',flush=True)
 	dlabel,did2s,cls_num=build_cls_kmer(infa_strains,cls95)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: - Build omatrix cls k-mer dict... Done',flush=True)
+	#para=[]
+	dsize={}
+	#pool=multiprocessing.Pool(processes=int(threads))
 	for filename in os.listdir(cls_dir):
 		cid=re.sub('C','',filename)
 		cid=int(cid)
-		if len(did2s[cid])>1:
-			kid=pickle.load(open(cls_dir+'/'+filename+'/all_kid.pkl','rb'))
-			row=len(kid)
-			column=len(range(cls_num))
-			'''
-			o=open(cls_dir+'/'+filename+'/overlap_matrix.csv','w+')
-			head=[]
-			for i in range(cls_num):
-				head.append(str(i+1))
-			o.write(','.join(head)+'\n')
-			'''
-			for k in kid:
-				kid[k]=int(kid[k])
-			mat=sp.dok_matrix((row,column), dtype=np.int8)
-			#res=sorted(kid.items(),key=lambda d:d[1])
-	
-			for k in kid:
-				mat[kid[k]-1,list(dlabel[k].keys())]=1
-				'''
-				r=r[0]
-				outa=[dlabel[r][key] for key in sorted(dlabel[r].keys())]
-				o.write(','.join(outa)+'\n')
-				'''
-			mat=mat.tocsr()
-			sp.save_npz(cls_dir+'/'+filename+'/overlap_matrix.npz',mat)			
-		print('C',cid,'\tfinished.')
-
+		if len(did2s[cid])==1:continue
+		dsize[filename]=len(did2s[cid])
+	res=sorted(dsize.items(), key = lambda kv:(kv[1], kv[0]), reverse = True)
+	for r in res:
+		filename=r[0]
+		#tem=[filename,did2s,cls_dir,cls_num,dlabel]
+		#para.append(tem)
+		build_parallel([filename,did2s,cls_dir,cls_num,dlabel])
+	#pool.close()
+	#pool.join()
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: - All omatrices are finished now.',flush=True)
+	return
+	#os.system('rm -rf '+rdir)
 	
 
 #build_omatrix('../Cutibacterium_acnes_small_pure','../Csmall_50/Cluster_Result/hclsMap_95.txt','../Csmall_50/Kmer_Sets_L2/Kmer_Sets')

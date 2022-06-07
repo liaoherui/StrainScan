@@ -1,17 +1,19 @@
 import re
 import os
+import subprocess
 import Unique_kmer_detect_direct
 import seqpy
 from collections import defaultdict
 from collections import OrderedDict
 from Bio import SeqIO
-#import msa_polish_with_kalign
+import multiprocessing
 import math
 import pickle
 import Recls_withR_new
 import scipy.sparse as sp
 import numpy as np
 import gc
+import time
 import generate_kmer_with_sts_con_block
 
 def build_dir(input_dir):
@@ -161,7 +163,7 @@ def connect_genome(input_genome):
 	out_seq=connect.join(all_seq)
 	return out_seq,contig_num
 
-def out_block(oi,dblock,block,strain_cls,mcgr):
+def out_block(oi,dblock,block,strain_cls):
 	oi.write('a\n')
 	block_seq=[]
 	for s in dblock[block]:
@@ -190,7 +192,7 @@ def out_block(oi,dblock,block,strain_cls,mcgr):
 	oi.write(block_seq_out+'\n\n')
 	
 
-def extract_unique_block_from_coords(block_coords,strain_cls,block_dir,mcgr,gkratio):
+def extract_unique_block_from_coords(block_coords,strain_cls,block_dir,gkratio):
 	# With block coords from sibeliaz, we need to align these block using Kalign, so we extract them firstly
 	f=open(block_coords,'r')
 	dblock=defaultdict(lambda:{}) # bid -> 'strain_pre':[+,1811,2534] ->(strand, start, end)
@@ -221,12 +223,12 @@ def extract_unique_block_from_coords(block_coords,strain_cls,block_dir,mcgr,gkra
 			dgk[block]=len(dblock[block])
 		else:
 			# Global colinear block
-			out_block(o2,dblock,block,strain_cls,mcgr)
+			out_block(o2,dblock,block,strain_cls)
 	# Partial colinear block filter according to gkratio
 	res_bk=sorted(dgk.items(), key = lambda kv:(kv[1], kv[0]), reverse = False)
 	if gkratio==1:
 		for block in dgk:
-			out_block(o,dblock,block,strain_cls,mcgr)
+			out_block(o,dblock,block,strain_cls)
 	else:
 		out_num=int(gkratio*len(dgk))
 		c=0
@@ -234,7 +236,7 @@ def extract_unique_block_from_coords(block_coords,strain_cls,block_dir,mcgr,gkra
 			block=r[0]
 			c+=1
 			if c>out_num:break
-			out_block(o,dblock,block,strain_cls,mcgr)
+			out_block(o,dblock,block,strain_cls)
 	
 
 def split_arr(arr,m):
@@ -318,7 +320,7 @@ def count_dbs(lines,ksize):
 				d[blockid][rev_kmer][ele[1]]=''
 	return d
 
-def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas):
+def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas,cid):
 	f=open(input_gb,'r')
 	lines=f.read().split('\n')
 	o=open(out_dir+'/all_kmer.fasta','w+')
@@ -385,7 +387,7 @@ def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_
 		kc+=1
 	#o1=open(out_dir+'/all_strain.csv','w+')
 	#o1.write(head_out)
-	print('Fill the Sparse matrix: Row: ',row,' Column: ',column)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB: C'+str(cid)+'- Fill the Sparse matrix: Row: ',row,' Column: ',column)
 	mat=sp.dok_matrix((row,column),dtype=np.int8)
 	for kmr in kmatrix:
 		mat[kmr-1,list(kmatrix[kmr].keys())]=1
@@ -395,12 +397,14 @@ def generate_kmer_match_from_global(input_gb,ksize,out_dir,dlabel,match_1,match_
 	with open(out_dir+'/all_kid.pkl','wb') as o2:
 		pickle.dump(kid_match,o2,pickle.HIGHEST_PROTOCOL)
 	# Now all sets are generated, we will re-cluster these strains to remove those 1% similar case
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB: C'+str(cid)+'- Recluster matrix')
 	Recls_withR_new.remove_1per(out_dir+'/all_strains.npz',out_dir+'/id2strain.pkl',out_dir)
 	if os.path.exists(out_dir+'/all_strains_re.npz'):
 		os.system('rm ' +out_dir+'/all_strains.npz '+out_dir+'/id2strain.pkl')
 	else:
 		print('The Re-cluster of L2 processing is failed! Please check!')
 		print('Related path: '+out_dir)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB: C'+str(cid)+'- The current cluster is finished!')
 
 
 
@@ -522,9 +526,61 @@ def build_kmer_dict(d,k):
 		c+=1
 	return dlabel,label_match
 
+#def run_build_parallel(ksdir,ksize,d,e,gkratio,uknum,mas,threads):
+def run_build_parallel(arg):
+	ks_dir=arg[0]
+	ksize=arg[1]
+	d=arg[2]
+	e=arg[3]
+	gkratio=arg[4]
+	uknum=arg[5]
+	mas=arg[6]
+	threads=arg[7]
+	cb_dir=arg[8]
+	cb_out=cb_dir+'/C'+str(e)
+	cg_dir=cb_out+'/Connect_Genomes'
+	matrix_out=ks_dir+'/C'+str(e)
+	build_dir(cg_dir)
+	build_dir(matrix_out)
+	strain_cls={}
+	strains=[]
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Build k-mer dict',flush=True)
+	dlabel,label_match=build_kmer_dict(d,int(ksize))
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Merge genomes',flush=True)
+	for s in d:
+		pre=Unique_kmer_detect_direct.get_pre(s)
+		cg_name=cg_dir+'/'+pre+'.fasta'
+		strain_cls[pre]=cg_name
+		strains.append(cg_name)
+		o=open(cg_name,'w+')
+		connect_seq,contig_num=connect_genome(s)
+		o.write('>'+pre+'\n'+connect_seq+'\n')
+	block_dir=cb_out+'/Blocks'
+	build_dir(block_dir)
+	all_s=' '.join(strains)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Run Sibeliaz',flush=True)
+	if len(strain_cls)<600:
+		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' -t '+str(threads)+' '+all_s
+	else:
+		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' -t 16 '+all_s	
+	cmd=cmd.split()
+	ret=subprocess.check_output(cmd)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Extract blocks from Sibeliaz output',flush=True)
+	extract_unique_block_from_coords(block_dir+'/blocks_coords.gff',strain_cls,block_dir,gkratio)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Unique k-mer extract',flush=True)
+	match_1,match_2,kid_match,kmatrix,head_out,knum,sid_match=find_unique_kmers_inside_cls(d,matrix_out,ksize,dlabel,uknum)
+	print('Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix),flush=True)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Partial k-mer extract',flush=True)
+	knum,kid_match,kmatrix=generate_kmer_match_from_uk(block_dir+'/alignment_unique.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,knum,kid_match,kmatrix,sid_match)
+	print('Partial Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix),flush=True)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Global k-mer extract and build matrix',flush=True)
+	generate_kmer_match_from_global(block_dir+'/alignment_global.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas,e)
 
-def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas):
-	print('Now we will extract kmers from unique region found by sibeliaz')
+def out_info_test(arg):
+	print(arg)
+
+def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas,threads):
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB::Step2-begin: Now we will extract kmers from unique region found by sibeliaz',flush=True)
 	#import multiprocessing
 	ksize=int(ksize)
 	cb_dir=out_dir+'/Colinear_Block'
@@ -532,21 +588,30 @@ def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas):
 	#uk_region_dir=out_dir+'/Unique_Region'
 	build_dir(cb_dir)
 	build_dir(ks_dir)
+	dsize={}
+	for e in d:
+		if len(d[e])==1:continue
+		dsize[e]=len(d[e])
+	res=sorted(dsize.items(), key = lambda kv:(kv[1], kv[0]), reverse = True)
+	param=[]
+
+	for r in res:
+		e=r[0]
+		tem=[ks_dir,ksize,d[e],e,gkratio,uknum,mas,threads,cb_dir]
+		param.append(tem)
+	pool=multiprocessing.Pool(processes=int(threads))
+	for item in param:
+		#run_build_parallel(item)
+		pool.apply_async(run_build_parallel,(item,))
+		#pool.apply_async(out_info_test,(item,))
+	pool.close()
+	pool.join()
+	#exit()
+	'''
 	#build_dir(uk_region_dir)
 	for e in d: # Go into a cluster
 		#if len(d[e])==1 or len(d[e])==2:continue
 		if len(d[e])==1:
-			'''
-			kb_out=ks_dir+'/C'+str(e)
-			build_dir(kb_out)
-			dlabel,label_match=build_kmer_dict(d[e],int(ksize))
-			dlabel=dict(dlabel)
-			#dlabel=klabel[int(e)]
-			with open(kb_out+'/all_kid.pkl','wb') as o12:
-				pickle.dump(dlabel,o12,pickle.HIGHEST_PROTOCOL)			
-			with open(kb_out+'/ids_match.pkl','wb') as o22:
-				pickle.dump(label_match,o22,pickle.HIGHEST_PROTOCOL)
-			'''
 			continue
 		#if len(d[e])>1000:continue # Just for test, need to annotate later
 		cb_out=cb_dir+'/C'+str(e)
@@ -557,12 +622,14 @@ def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas):
 		strain_cls={} # Pre -> Connect genome dir
 		strains=[]
 		mcgr={} # most_complete_genome_random: genome -> contig number
-		min_contig=-1
+		#min_contig=-1
 		# Build kmer -> Strain number dict
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Build k-mer dict',flush=True)
 		dlabel,label_match=build_kmer_dict(d[e],int(ksize))
 		#dlabel=klabel[int(e)]
 		#label_match=mapping
 		#print(dlabel)
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Merge genomes',flush=True)
 		for s in d[e]: # Each strain inside the cluster
 			pre=Unique_kmer_detect_direct.get_pre(s)
 			cg_name=cg_dir+'/'+pre+'.fasta'
@@ -572,64 +639,36 @@ def build_kmer_sets(d,out_dir,ksize,uknum,gkratio,mas):
 			connect_seq,contig_num=connect_genome(s)
 			o.write('>'+pre+'\n'+connect_seq+'\n')
 			# Take the genome with minimum contig as reference
-			if len(mcgr)==0:
-				mcgr[pre]=contig_num
-				min_contig=contig_num
-			if contig_num<min_contig:
-				mcgr={}
-				mcgr[pre]=contig_num 
-				min_contig=contig_num
+
 		# Use sibeliaz to obtain colinear block
 		block_dir=cb_out+'/Blocks'
 		build_dir(block_dir)
 		# Run sibeliaz to find local colinear blocks
 		all_s=' '.join(strains)
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Run Sibeliaz',flush=True)
+		#os.system('sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' '+all_s)
+		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' '+all_s
+		cmd=cmd.split()
+		ret=subprocess.check_output(cmd)
+		print(ret)
+		exit()
 
-		os.system('sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' '+all_s)
-
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Extract blocks from Sibeliaz output',flush=True)
 		# Extract Partial colinear blocks from these blocks 
-		extract_unique_block_from_coords(block_dir+'/blocks_coords.gff',strain_cls,block_dir,mcgr,gkratio)
+		extract_unique_block_from_coords(block_dir+'/blocks_coords.gff',strain_cls,block_dir,gkratio)
 		
 		# Get kmers from unique region to Unique_Region dir
 		#uk_cls=uk_region_dir+'/C'+str(e)
 		#build_dir(uk_cls)
-
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Unique k-mer extract',flush=True)
 		# K-mer matrix from unique k-mers
 		match_1,match_2,kid_match,kmatrix,head_out,knum,sid_match=find_unique_kmers_inside_cls(d[e],matrix_out,ksize,dlabel,uknum)
-		print('Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix))
+		print('Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix),flush=True)
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Partial k-mer extract',flush=True)
 		# K-mer matrix from partial colinear block
 		knum,kid_match,kmatrix=generate_kmer_match_from_uk(block_dir+'/alignment_unique.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,knum,kid_match,kmatrix,sid_match)
-		print('Partial Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix))
+		print('Partial Unique part -> kid_match:',len(kid_match),', kmatrix:',len(kmatrix),flush=True)
+		print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Global k-mer extract and build matrix',flush=True)
 		# K-mer matrix from global colinear block - Only mode/ All mode
 		generate_kmer_match_from_global(block_dir+'/alignment_global.maf',int(ksize),matrix_out,dlabel,match_1,match_2,head_out,sid_match,label_match,knum,kid_match,kmatrix,mas)
-
-		
-		#find_unique_kmers_inside_cls(d[e],matrix_out,ksize,dlabel)
-		#exit()
-		# Finished 	
-		#return block_dir,mcgr,ref_match # This line shows -> What we can obtain in this step
-		# Continue: Align sequences with kalign
-		# Without multiprocess to speed up
-		
-		#input_block=block_dir+'/alignment.maf'
-		#out_block=block_dir+'/alignment_rebuild.maf'
-		'''
-		msa_polish_with_kalign.realign_with_kalign([input_block,out_block,len(ref_match)-1])
-		'''
-		# Add 2021-02-01 Use multiprocess to speed up
-		# Basic logic: Split alignment file and align them sperately
-		
-		#back_arr,tem_dir=load_split_block(input_block,4,block_dir)
-		#print('Spilt_finished....')
-		#msa_polish_with_kalign.realign_with_kalign(back_arr[0])
-		#exit()
-		'''
-		pool = multiprocessing.Pool(processes = 4)
-		group=1
-		for item in back_arr:
-			print('::Go:','Group ',group)
-			group+=1
-			pool.apply_async(msa_polish_with_kalign.realign_with_kalign,(item,))
-		pool.close()
-		pool.join()
-		'''
+	'''	
