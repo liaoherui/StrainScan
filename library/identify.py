@@ -1,11 +1,11 @@
 from treelib import Tree, Node
 import scipy.stats as st
 import os
+import uuid
 from collections import defaultdict
 import random
 import numpy as np
 import time
-import uuid
 
 
 def read_tree_structure(db_dir): # tree.data [node category, accessibility, covered_num, total_num, abundance]
@@ -42,7 +42,7 @@ def get_node_label(db_dir, tree):
     for line in lines:
         d = line.rstrip().split("\t")
         length[int(d[0])] = int(d[1])
-    for node in tree.all_nodes():
+    for node in tree.all_nodes():   # test
         if(length[node.identifier] < 1000):
             node.data[0] = 0
         elif(length[node.identifier] < 3000):
@@ -66,6 +66,7 @@ def jellyfish_count(fq_path, db_dir):
     dir_jf = os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
     uid = uuid.uuid1().hex
     jf_res_path = "temp_"+uid+".fa"
+    #if(os.path.exists(jf_res_path) == False):
     os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + fq_path)
     os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
     os.system("rm temp_"+uid+".jf")
@@ -221,7 +222,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
         print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
         if(abundance[node]>=ab_cutoff):
-            pending.append(list(reversed(tree.children(node.identifier))))
+            pending.append(tree.children(node.identifier))
         del pending[0]
         return 1
     elif(len(group)==1 and group[0].data[0]==0):    # root node is weak
@@ -231,7 +232,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         cov[node] = 0
         abundance[node] = 0
         print("%d:    weak"%node.identifier)
-        pending.append(list(reversed(tree.children(node.identifier))))
+        pending.append(tree.children(node.identifier))
         del pending[0]
         return 1
     print("parent node: %d ->"%tree.parent(group[0].identifier).identifier)
@@ -243,18 +244,22 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
             abundance[node] = 0
             cov[node] = 0
             length[node] = 0
-            pending.append(list(reversed(tree.children(node.identifier))))
+            pending.append(tree.children(node.identifier))
         del pending[0]
 
     correction_label = 0
     group_label = []
+    weak_label = 0
+    for node in group:
+        if(node.data[0] == 0):
+            weak_label = 1
     for node in group:
         if(node.data[0] == 0):
             abundance[node] = 0
             cov[node] = 0
             length[node] = 0
             node.data[1] = 2
-            pending.append(list(reversed(tree.children(node.identifier))))
+            pending.append(tree.children(node.identifier))
             print("%d:    weak"%node.identifier)
             group_label.append((node, 0))
             continue
@@ -265,20 +270,20 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
                 node.data[0] = 2
             group_label.append((node, node.data[0]))
             length[node], k_profile = match_node(match_results, db_dir, node.identifier, valid_kmers)
-            if(length[node]<500):
+            if(length[node]==0):
                 abundance[node] = 0
                 cov[node] = 0
-                length[node] = 0
-                pending.append(list(reversed(tree.children(node.identifier))))
+                pending.append(tree.children(node.identifier))
                 print("%d:    weak"%node.identifier)
                 group_label.append((node, 0))
             else:
                 cov[node] = len(k_profile)/length[node]
                 abundance[node] = piecewise(cov_cutoff, cov[node], node.data[0], k_profile)
         else:
-            correction_label = 1
             node.data[0] = adjust_profile(node, results, valid_kmers, length, abundance, cov, match_results, cov_cutoff, db_dir, overlapping_info)
             group_label.append((node, node.data[0]))
+            if(weak_label==0):
+                correction_label = 1
         if(abundance[node]<ab_cutoff):
             abundance[node] = 0
         print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
@@ -333,7 +338,7 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
             i.data[1] = 1
         if(i not in leaves):
             if(tree.children(i.identifier) not in pending):
-                pending.append(list(reversed(tree.children(i.identifier))))
+                pending.append(tree.children(i.identifier))
         else:
             res_temp.append(i)
     del pending[0]
@@ -406,6 +411,7 @@ def identify_cluster(fq_path, db_dir, cutoff):
                     lines2 = f2.readlines()
                     for line in lines2:
                         d = line.rstrip().split(" ")
+                        print(j.identifier, int(d[0]), int(d[1]))
                         overlapping_info[j.identifier][int(d[0])] = map(int, lines[int(d[1])].rstrip().split(" "))
             else:
                 j.data[1] = 0
@@ -451,3 +457,10 @@ def identify_cluster(fq_path, db_dir, cutoff):
     end = time.time()
     print('- The total running time of tree search is ',str(end-start),' s\n')
     return res
+
+
+
+
+
+
+
