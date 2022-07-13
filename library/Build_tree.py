@@ -1,3 +1,4 @@
+import pickle as pkl
 from treelib import Tree, Node
 import time
 import seqpy
@@ -52,15 +53,16 @@ def hierarchy(fna_mapping, dist):
         del mapping[cluster_a], mapping[cluster_b]
         pending.remove(cluster_a)
         pending.remove(cluster_b)
+        pending = sorted(list(pending))
         for i in pending:
             if(mapping[i]>min([child_a, child_b]) and mapping[i]<max([child_a, child_b])):
                 mapping[i] -= 1
             elif(mapping[i]>max([child_a, child_b])):
                 mapping[i] -= 2
         mapping[node_id] = len(cls_dist)-1
+        pending = set(pending)
         pending.add(node_id)
         node_id += 1
-
     # build tree structure
     pending = list(pending)
     tree = Tree()
@@ -261,7 +263,82 @@ def build_tree(arg):
         temp = line.rstrip().split("\t")
         for i in temp[2].split(","):
             fna_mapping[int(temp[0])].add(fna_seq[i])
+    if(len(lines)==1):
+        tree = Tree()
+        kmer_sta = defaultdict(int)
+        T0 = Node(identifier = list(fna_mapping.keys())[0])
+        tree.add_node(T0)
+        kmer_sta = defaultdict(int)
+        kmer_index_dict = bidict.bidict()
+        kmer_index = 1
+        alpha_ratio = 1
+        Lv = set()
+        for i in fna_mapping[T0.identifier]:
+            for seq_record in SeqIO.parse(fna_path[i], "fasta"):
+                temp = str(seq_record.seq)
+                for k in range(0, len(temp)-ksize):
+                    forward = temp[k:k+ksize]
+                    reverse = seqpy.revcomp(forward)
+                    for kmer in [forward, reverse]:
+                        try:
+                            kmer_sta[kmer_index_dict[kmer]] += 1
+                        except KeyError:
+                            kmer_index_dict[kmer] = kmer_index
+                            kmer_sta[kmer_index] += 1
+                            kmer_index += 1
+        alpha = len(fna_mapping[T0.identifier]) * alpha_ratio
+        for x in kmer_sta:
+            if(kmer_sta[x] >= alpha):
+                Lv.add(x)
+        print(T0.identifier, len(Lv))
+        # save2file
+        kmerlist = set()
+        pkl.dump(tree, open(tree_dir+'/tree.pkl', 'wb'))
+        f = open(tree_dir+"/tree_structure.txt", "w")
+        os.system("mkdir "+tree_dir+"/kmers")
+        os.system("mkdir "+tree_dir+"/overlapping_info")
+        f.write("%d\t"%T0.identifier)
+        f.close()
+        os.system(f'cp {cls_file} {tree_dir}/')
+        f = open(tree_dir+"/reconstructed_nodes.txt", "w")
+        f.close()
+        if(len(Lv) > maxsize):
+            Lv = set(random.sample(Lv, maxsize))
+        kmerlist = Lv
+        length = len(Lv)
+        f = open(tree_dir+"/kmers/"+str(T0.identifier), "w")
+        for j in Lv:
+            f.write("%d "%j)
+        f.close()
+        f = open(tree_dir+"/node_length.txt", "w")
+        f.write("%d\t%d\n"%(T0.identifier, length))
+        kmer_mapping = {}
+        index = 0
+        f = open(tree_dir+"/kmer.fa", "w")
+        for i in kmerlist:
+            f.write(">1\n")
+            f.write(kmer_index_dict.inv[i])
+            kmer_mapping[i] = index
+            index += 1
+            f.write("\n")
+        f.close()
 
+        # change index
+        files = os.listdir(tree_dir+"/kmers")
+        for i in files:
+            f = open(tree_dir+"/kmers/"+i, "r")
+            lines = f.readlines()
+            if(len(lines) == 0):
+                continue
+            d = lines[0].rstrip().split(" ")
+            d = map(int, d)
+            f = open(tree_dir+"/kmers/"+i, "w")
+            for j in d:
+                f.write("%d "%kmer_mapping[j])
+            f.close()
+        end = time.time()
+        print('- The total running time of tree-based indexing struture building is ',str(end-start),' s\n')
+        return
     # initially build tree
     cls_dist, mapping, tree, depths, depths_mapping = hierarchy(fna_mapping, dist)
 

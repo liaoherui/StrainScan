@@ -1,3 +1,4 @@
+import pickle as pkl
 from treelib import Tree, Node
 import scipy.stats as st
 import os
@@ -12,6 +13,9 @@ def read_tree_structure(db_dir): # tree.data [node category, accessibility, cove
     GCF = {}
     f = open(db_dir+"/tree_structure.txt", "r")
     lines = f.readlines()
+    if(len(lines)==1):
+        tree = pkl.load(open(db_dir+'/tree.pkl', 'rb'))
+        return tree, GCF
     tree = Tree()
     sequences = []
     if(lines[-1].split("\t")[1]!="N"):
@@ -223,7 +227,12 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
         if(abundance[node]>=ab_cutoff):
             pending.append(tree.children(node.identifier))
-        del pending[0]
+        if(pending[1]==[]):
+            res_temp.append(group[0])
+            del pending[0]
+            del pending[0]
+        else:
+            del pending[0]
         return 1
     elif(len(group)==1 and group[0].data[0]==0):    # root node is weak
         node = group[0]
@@ -394,7 +403,6 @@ def identify_cluster(fq_path, db_dir, cutoff):
     abundance = {}
     alternative = []
     overlapping_info = defaultdict(dict)
-
     while(len(pending)!=0):
         res_temp = []
         search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info)
