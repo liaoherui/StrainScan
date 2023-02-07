@@ -108,7 +108,8 @@ One example about database construction and identification commands can be found
 ### Use StrainScan to identify plasmids of bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 1 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
 
-### Use StrainScan to identify bacterial strains in short reads in extraRegion_mode, which will return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered.
+### Use StrainScan to identify bacterial strains in short reads under extraRegion_mode.
+This mode will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered. If there is a novel strain not in the database, then its closest relative can be one specific strain while its other small regeions in the genome can be similar to other strains. In this case, this mode can search its closest relative and return strains with these regions covered for down-stream analysis. <BR/>
    `python StrainScan.py -i <Input_reads> -d <Database_Dir> -e 1 -o <Output_Dir>`<BR/>
 
 ### Full command-line options
