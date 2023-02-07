@@ -111,7 +111,7 @@ One example about database construction and identification commands can be found
  `<Ref_genome_Dir>` refer to the dir of reference genomes of identified clusters or all strains used to build the database.
 
 ### Use StrainScan to identify bacterial strains in short reads under extraRegion_mode.
-This mode will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered. If there is a novel strain not in the database, then its closest relative can be one specific strain while its other small regeions in the genome can be similar to other strains. In this case, this mode can search its closest relative and return strains with these regions covered for down-stream analysis. <BR/>
+This mode will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered. If there is a novel strain not in the database, then its closest relative can be one specific strain while its partial regeions (we call them "extraRegion" ) in the genome can be similar to other strains. In this case, this mode can search its closest relative and return strains with "extraRegion" covered for down-stream analysis. <BR/>
 
    `python StrainScan.py -i <Input_reads> -d <Database_Dir> -e 1 -o <Output_Dir>`<BR/>
 
