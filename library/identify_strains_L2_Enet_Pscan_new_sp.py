@@ -129,6 +129,7 @@ def get_candidate_arr(ix,iy):
 		res[c]=check
 		c+=1
 	hc=sorted(res.items(),key=lambda d:d[1],reverse=True)
+	#print(hc)
 	candidate=hc[0][0]
 	return candidate,hc[0][1]
 
@@ -173,7 +174,7 @@ def optimize_dominat_y(ix,iy):
 	#exit()
 	return dominat
 
-def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatrix,all_cls,l2,msn):
+def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatrix,all_cls,l2,msn,pmode,emode):
 
 	#data_frame1=read_csv(input_csv)
 	new_als=[]
@@ -234,6 +235,8 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		mannual_depth={} # Strain -> Mannual Depth
 		out_columns=[]
 		out_strain=[]
+	
+
 		pXt=pX.T
 		cov_arr=cal_cov_all(pX,py)
 		cov_arr=np.array(cov_arr)
@@ -241,7 +244,11 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		#print(sid)
 		#exit()
 		dominat_avg_depth=0
-		default_cov=0.7
+		if pmode==1 or emode==1:
+			default_cov=0
+		else:
+			default_cov = 0.7
+		#('strain_cov:',cov_arr)
 		'''
 		if cls_cov>=0.9:
 			default_cov=0.9
@@ -294,6 +301,17 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		# Now we will start iterative pre-scan process to find multiple strains.
 		max_iter=15 # The maximum iterate times
 		used_kmer=pXt[dominat]
+		#npXt = 2 * used_kmer + pXt_tem
+		#print('pXt:',pXt)
+		#print('pXt_tem:',pXt_tem)
+		#print('npXt:',npXt)
+
+		#npXt[npXt > 1] = 0
+		#npXt=npXt.T
+		#print(npXt.shape)
+		#for e in npXt:
+		#print('Diff k-mer:',np.sum(e))
+		#exit()
 		#used_kmer=new_x
 		strain_remainc=get_remainc(dominat,used_kmer,pXt_tem,py_u,strain_remainc)
 
@@ -301,6 +319,11 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 			#if remain_kmer<cutoff:break
 			npXt=2*used_kmer+pXt_tem
 			npXt[npXt>1]=0
+			'''
+			for e in npXt:
+				print('k-mer array:',list(e))
+			print('frequency value:',list(py_u))
+			'''
 			#npXt[npXt==3]=0
 			#candidate_arr=np.dot(npXt,py)
 			#if np.max(candidate_arr)<2*cutoff:break
@@ -324,8 +347,15 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 
 			#print(sid[candidate],check)
 			#exit()
-			if check>=cutoff:
-				if strain_remainc[candidate]>0.2:
+			if emode==1:
+				remainc_cutoff=0
+				check_c=5000
+			else:
+				remainc_cutoff = 0.2
+				check_c=cutoff
+			if check>=check_c:
+				#print(sid[candidate],strain_remainc[candidate])
+				if strain_remainc[candidate]>remainc_cutoff:
 					out_columns.append(candidate)
 					out_strain.append(sid[candidate])
 					strain_cov[sid[candidate]]=stat_cov(pX[:,candidate],py)
@@ -339,6 +369,7 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 				used_kmer[used_kmer>1]=1
 			else:
 				break
+		#exit()
 		return out_columns,out_strain,strain_cov,strain_val,final_src,dominat_avg_depth
 
 	out_columns,out_strains,strain_cov,strain_val,final_src,dominat_avg_depth=Pre_Scan(pX,py,sid,cutoff,cls_cov,py_u,l2)
@@ -350,7 +381,9 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 		res2=dict(zip(out_strains,[dominat_avg_depth]))
 		return res,res2,strain_cov,strain_val,final_src
 
-	
+
+
+
 	#out_strains=sid
 	oX=pX[:,out_columns]
 	#X=pX
@@ -440,6 +473,8 @@ def detect_strains(input_csv,input_y,ids,ksize,npp25,npp75,npp_out,cls_cov,omatr
 	#print(coef_norm)
 	#res=dict(zip(out_strains,list(coef_norm)))
 	#res2=dict(zip(out_strains,list(lasso_coef)))
+	#print(res,res2)
+	#exit()
 	return res,res2,strain_cov,strain_val,final_src
 
 	#import pickle

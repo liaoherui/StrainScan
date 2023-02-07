@@ -555,6 +555,7 @@ def run_build_parallel(arg):
 		o=open(cg_name,'w+')
 		connect_seq,contig_num=connect_genome(s)
 		o.write('>'+pre+'\n'+connect_seq+'\n')
+		o.close()
 	block_dir=cb_out+'/Blocks'
 	build_dir(block_dir)
 	all_s=' '.join(strains)
@@ -562,7 +563,9 @@ def run_build_parallel(arg):
 	if len(strain_cls)<600:
 		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' -t '+str(threads)+' '+all_s
 	else:
-		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' -t 16 '+all_s	
+		cmd='sibeliaz -n -m 100 -k 15 -a '+str(150*len(strain_cls))+' -o '+block_dir+' -t 16 '+all_s
+	print(cmd)
+	#exit()
 	cmd=cmd.split()
 	ret=subprocess.check_output(cmd)
 	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: C'+str(e)+'- Extract blocks from Sibeliaz output',flush=True)

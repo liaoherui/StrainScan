@@ -243,7 +243,7 @@ def generate_single_report(in_dict,out_dir):
 		c+=1
 
 	
-def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn):
+def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn,pmode,emode):
 	check=check_L1_res(res)
 	if check==1:
 		print('- Only single cluster is identified, will not go to the 2nd layer identification ...')
@@ -266,7 +266,7 @@ def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn):
 			cls_cov=res[r]['cls_cov']
 			#overlap_kmr={}
 			#union_kmr={}
-			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn]
+			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode]
 			#vote_strain_L2(input_fq,nd,cls_out,ksize,cls_ab,overlap_kmr,ok_percent)
 			vote_strain_L2(item)
 			os.system('cp '+cls_out+'/StrainVote.report '+out_dir+'/final_report.txt')
@@ -288,7 +288,7 @@ def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn):
 			build_dir(cls_out)
 			cls_ab=res[r]['cls_ab']
 			cls_cov=res[r]['cls_cov']
-			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn]
+			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode]
 			all_in_list.append(item)
 		print('- Parallel strain-level identification ...')
 		for item in all_in_list:
@@ -341,6 +341,8 @@ def vote_strain_L2(item):
 	all_cls=item[7]
 	l2=item[8]
 	msn=item[9]
+	pmode=item[10]
+	emode=item[11]
 	kid_match=pickle.load(open(db_dir+"/all_kid.pkl","rb"))
 	#dk_match=pickle.load(open(db_dir+"/kmatch.pkl", "rb"))
 	
@@ -395,7 +397,7 @@ def vote_strain_L2(item):
 	npp75=npp_outlier
 	#npp75=np.max(npp)
 	#res,res2,strain_cov,strain_val,final_src=identify_strains_L2_Enet_Pscan_new.detect_strains(db_dir+'/all_strains_re.csv',py_o,db_dir+'/id2strain_re.pkl',int(ksize),npp25,npp75,npp_outlier,py_u,cls_cov)
-	res,res2,strain_cov,strain_val,final_src=identify_strains_L2_Enet_Pscan_new_sp.detect_strains(db_dir+'/all_strains_re.npz',py_o,db_dir+'/id2strain_re.pkl',int(ksize),npp25,npp75,npp_outlier,cls_cov,db_dir+'/overlap_matrix.npz',all_cls,l2,msn)
+	res,res2,strain_cov,strain_val,final_src=identify_strains_L2_Enet_Pscan_new_sp.detect_strains(db_dir+'/all_strains_re.npz',py_o,db_dir+'/id2strain_re.pkl',int(ksize),npp25,npp75,npp_outlier,cls_cov,db_dir+'/overlap_matrix.npz',all_cls,l2,msn,pmode,emode)
 	if len(res)==0:return
 	
 	nr=sorted(res.items(),key=lambda d:d[1],reverse=True)
@@ -411,6 +413,8 @@ def vote_strain_L2(item):
 	for n in  nr:
 		if n[1]>0.02 and strain_cov[n[0]][0]>0.7:
 			o.write(str(c)+'\t'+n[0]+'\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t*\n')
+		elif emode==1:
+			o.write(str(c)+'\t'+n[0]+' (Only_ExtraRegion_covered)\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t\n')
 		else:
 			o.write(str(c)+'\t'+n[0]+'\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t\n')
 		c+=1
