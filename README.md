@@ -15,6 +15,10 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 * *V1.0.10: Add multuple threads to the reference database constrcution! <BR/>*
 
+#### *__[Update - 2023 - 02 - 07]__* :  <BR/>
+
+* *Two new intra-cluster searching modes are updated: plasmid_mode and extraRegion mode.<BR/>*
+
 
 ---------------------------------------------------------------------------
 ### Overview of StrainScan:
@@ -119,6 +123,7 @@ optional arguments:
     -o, --output_dir              The output directory. (Default: ./StrainScan_Result)
     -k, --kmer_size               The size of k-mer, should be odd number. (Default: k=31)
     -l, --low_dep                 This parameter can be set to "1" if the sequencing depth of input data is very low (e.g. < 5x). For super low depth ( < 1x ), you can use "-l 2" (default: -l 0)
+    -p,	--
     -s, --minimum_snv_num         The minimum number of SNVs during the iterative matrix multiplication at Layer-2 identification. (Default: s=40)
 ```
 Build database - StrainScan_build.py (Default k-mer size: 31)
