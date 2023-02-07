@@ -105,6 +105,12 @@ One example about database construction and identification commands can be found
  or
   `python StrainScan.py -i Sim_Data_mul/GCA_000144385_5X_GCF_008868325_5X.fq -d  DB_Small -o Test_Sim/GCA_000144385_5X_GCF_008868325_5X `<BR/>
 
+### Use StrainScan to identify plasmids of bacterial strains in short reads.
+  `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 1 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
+
+### Use StrainScan to identify bacterial strains in short reads in extraRegion_mode, which will return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered.
+   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -e 1 -o <Output_Dir>`<BR/>
+
 ### Full command-line options
 <!---(Note: The initial idea of development of StrainScan is "Simpler is better". We do not want to burden users due to complicated usage of StrainScan. So the default parameters (some are inside the program) are simple but have good performance in our test, however, more useful parameters will be added for users who need them.)-->
 
