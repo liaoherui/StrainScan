@@ -17,7 +17,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 #### *__[Update - 2023 - 02 - 07]__* :  <BR/>
 
-* *(only GitHub version)Two new intra-cluster searching modes are updated: plasmid_mode and extraRegion mode.<BR/>*
+* *(only GitHub version)Two new intra-cluster searching modes are updated: plasmid_mode and extraRegion_mode.<BR/>*
 
 
 ---------------------------------------------------------------------------
