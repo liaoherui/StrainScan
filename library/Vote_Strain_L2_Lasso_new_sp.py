@@ -414,7 +414,7 @@ def vote_strain_L2(item):
 		if n[1]>0.02 and strain_cov[n[0]][0]>0.7:
 			o.write(str(c)+'\t'+n[0]+'\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t*\n')
 		elif emode==1:
-			o.write(str(c)+'\t'+n[0]+' (Only_ExtraRegion_covered)\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t\n')
+			o.write(str(c)+'\t'+n[0]+' (With_ExtraRegion_covered)\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t\n')
 		else:
 			o.write(str(c)+'\t'+n[0]+'\t'+cls+'\t'+str(n[1])+'\t'+str(res2[n[0]])+'\t'+str((res2[n[0]]/tdep)*cls_ab)+'\t'+str(strain_cov[n[0]][0])+'\t'+str(strain_cov[n[0]][1])+'/'+str(strain_cov[n[0]][2])+'\t'+str(strain_val[n[0]])+'\t'+str(final_src[n[0]])+'\t\n')
 		c+=1
