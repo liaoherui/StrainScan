@@ -106,7 +106,11 @@ One example about database construction and identification commands can be found
   `python StrainScan.py -i Sim_Data_mul/GCA_000144385_5X_GCF_008868325_5X.fq -d  DB_Small -o Test_Sim/GCA_000144385_5X_GCF_008868325_5X `<BR/>
 
 ### Use StrainScan to identify plasmids of bacterial strains in short reads.
+  option-1: identify possible plasmids by using contigs <100000 bp:<BR/>
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 1 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
+  
+  option-2: identify possible plasmids (or coding regions) using reference genomes provided by "-r".<BR/>
+  `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 2 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
   
  `<Ref_genome_Dir>` refer to the dir of reference genomes of identified clusters or all strains used to build the database.
 
@@ -133,7 +137,9 @@ optional arguments:
     -o, --output_dir              The output directory. (Default: ./StrainScan_Result)
     -k, --kmer_size               The size of k-mer, should be odd number. (Default: k=31)
     -l, --low_dep                 This parameter can be set to "1" if the sequencing depth of input data is very low (e.g. < 5x). For super low depth ( < 1x ), you can use "-l 2" (default: -l 0)
-    -p,	--plasmid_mode		  If this parameter is set to 1, the intra-cluster searching process will search possible plasmids using short contigs (<100000 bp) in strain genomes, which are likely to be plasmids. Reference genome sequences (-r) are required if this mode is used. (default: -p 0)
+    -p,	--plasmid_mode		  If this parameter is set to 1, the intra-cluster searching process will search possible plasmids using short contigs (<100000 bp) in strain genomes, which are likely to be plasmids. 
+                                  If this parameter is set to 2, the intra-cluster searching process will search possible plasmids or strains using given reference genomes by "-r".
+    				  Reference genome sequences (-r) are required if this mode is used. (default: -p 0)
     -r, --ref_genome		  The dir of reference genomes of identified cluster or all strains. If plasmid_mode is used, then this parameter is required.
     -e, --extraRegion_mode	  If this parameter is set to 1, the intra-cluster searching process will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered. (default: -e 0)
     -s, --minimum_snv_num         The minimum number of SNVs during the iterative matrix multiplication at Layer-2 identification. (Default: s=40)
