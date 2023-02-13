@@ -109,7 +109,7 @@ One example about database construction and identification commands can be found
   option-1: identify possible plasmids by using contigs <100000 bp:<BR/>
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 1 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
   
-  option-2: identify possible plasmids (or coding regions) using reference genomes provided by "-r".<BR/>
+  option-2: identify possible plasmids (or possible strains) using reference genomes provided by "-r".<BR/>
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -p 2 -r <Ref_genome_Dir> -o <Output_Dir>`<BR/>
   
  `<Ref_genome_Dir>` refer to the dir of reference genomes of identified clusters or all strains used to build the database.
