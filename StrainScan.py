@@ -105,7 +105,7 @@ def main():
 	parser.add_argument('-o','--output_dir',dest='out_dir',type=str,help='Output dir (default: current dir/StrainVote_Result)')
 	parser.add_argument('-k','--kmer_size',dest='ksize',type=str,help='The size of kmer, should be odd number. (default: k=31)')
 	parser.add_argument('-l','--low_dep',dest='ldep',type=str,help='This parameter can be set to \"1\" if the sequencing depth of input data is very low (e.g. < 10x). For super low depth ( < 1x ), you can use \"-l 2\"  (default: -l 0)')
-	parser.add_argument('-p', '--plasmid_mode', dest='pmode', type=str, help='If this parameter is set to 1, the intra-cluster searching process will search possible plasmids using short contigs (<100000 bp) in strain genomes, which are likely to be plasmids. Reference genome sequences (-r) are required if this mode is used. (default: -p 0)')
+	parser.add_argument('-p', '--plasmid_mode', dest='pmode', type=str, help='If this parameter is set to 1, the intra-cluster searching process will search possible plasmids using short contigs (<100000 bp) in strain genomes, which are likely to be plasmids. If this parameter is set to 2, the intra-cluster searching process will search possible strains using given reference genomes by \"-r\". Reference genome sequences (-r) are required if this mode is used. (default: -p 0)')
 	parser.add_argument('-r', '--ref_genome', dest='rgenome', type=str,help='The dir of reference genomes of identified cluster or all strains. If plasmid_mode is used, then this parameter is required.')
 	parser.add_argument('-e', '--extraRegion_mode', dest='emode', type=str,help='If this parameter is set to 1, the intra-cluster searching process will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered.  (default: -e 0)')
 	parser.add_argument('-s', '--minimum_snv_num', dest='msn', type=str,help='The minimum number of SNV at Layer-2 identification. (default: k=40)')
@@ -178,9 +178,12 @@ def main():
 		print('Warning: No clusters can be detected!')
 		exit()
 	# Step3 -> Vote Strains inside Cls
-	if pmode==1:
-		plas_ref=load_db_cls(db_dir,dict(cls_dict),out_dir,rgenome)
-		plas_ref=os.path.abspath(plas_ref)
+	if pmode==1 or pmode==2:
+		if pmode==1:
+			plas_ref=load_db_cls(db_dir,dict(cls_dict),out_dir,rgenome)
+			plas_ref=os.path.abspath(plas_ref)
+		else:
+			plas_ref=os.path.abspath(rgenome)
 		#print(plas_ref)
 		#exit()
 		#for c in dict(cls_dict):
