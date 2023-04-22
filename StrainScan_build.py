@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import shutil
+import logging
 import argparse
 sys.path.append('library')
 from library import Cluster,Unique_kmer_detect_direct,Build_kmer_sets_unique_region_lasso_test_allinone_sp,select_rep,Build_overlap_matrix_sp,Build_tree
@@ -9,13 +10,13 @@ import time
 import psutil
 from collections import defaultdict
 
-# argparse
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.RawDescriptionHelpFormatter):
     pass
 
-__author__="Liao Herui, Ji Yongxin - PhD of City University of HongKong"
-usage="StrainScan - A kmer-based strain-level identification tool."
+__author__ = "Liao Herui, Ji Yongxin - PhD of City University of HongKong"
+usage = "StrainScan - A kmer-based strain-level identification tool."
 
 def merge_cls(dc_in):
 	dc_out=defaultdict(lambda:{})
@@ -76,9 +77,7 @@ def main():
 	
 	fa_dir = args.input_fa
 	out_dir = args.out_dir
-	ksize = args.ksize
-	params = [0.8,mink,maxk,maxn]
-	ksize = 31 if not ksize else ksize
+	params = [0.8, args.mink, args.maxk, args.maxn]
 
 	#icf=args.icf
 	'''
@@ -87,30 +86,32 @@ def main():
 		tid='1747'
 	'''
 
-	out_dir = initial_para(os.path.join(out_dir, pwd, 'StrainScan_DB'))
 	cls_res = os.path.join(out_dir, 'Cluster_Result')
 	kmer_sets_l2 = os.path.join(out_dir, 'Kmer_Sets_L2')
 	
-	os.makedirs(out_dir, exists_ok=True)
-	os.makedirs(cls_res, exists_ok=True)
-	os.makedirs(kmer_sets_l2, exists_ok=True)
+	os.makedirs(out_dir, exist_ok=True)
+	os.makedirs(cls_res, exist_ok=True)
+	os.makedirs(kmer_sets_l2, exist_ok=True)
 	
 	# Construct matrix with dashing (jaccard index)
+	logging.info('Constructing matrix with dashing (jaccard index)')
 	matrix = Cluster.construct_matrix(fa_dir)
 	
 	# -------- Hirarchical clustering Part --------
 	#### Default: Single: 0.95, Complete: 0.95
 	# ---------------------------------------------
-	dc95 = Cluster.hcls(matrix,'single','0.05')
+	logging.info('Hierarchical clustering')
+	dc95 = Cluster.hcls(matrix, 'single', '0.05')
 	os.system('mv hclsMap_* distance_matrix_rebuild.txt distance_matrix.txt '+cls_res)
 	cls_file = os.path.join(cls_res, 'hclsMap_95.txt')
 	dc95_rep,dc95_l2 = select_rep.pick_rep(os.path.join(cls_res, 'distance_matrix_rebuild.txt'), 
                                            cls_file, cls_res)
  
-	# Construct the tree 	
-	os.makedirs(os.path.join(out_dir, 'Tree_database/test'), exists_ok=True)
-	os.makedirs(os.path.join(out_dir, 'Tree_database/nodes_kmer'), exists_ok=True)
-	os.makedirs(os.path.join(out_dir, '/Tree_database/overlap'), exists_ok=True)
+	# Construct the tree 
+	logging.info('Constructing the tree')	
+	os.makedirs(os.path.join(out_dir, 'Tree_database', 'test'), exist_ok=True)
+	os.makedirs(os.path.join(out_dir, 'Tree_database', 'nodes_kmer'), exist_ok=True)
+	os.makedirs(os.path.join(out_dir, 'Tree_database', 'overlap'), exist_ok=True)
 	Build_tree.build_tree([os.path.join(cls_res, 'distance_matrix.txt'), 
                            os.path.join(cls_res, 'hclsMap_95_recls.txt'),
                            os.path.join(out_dir, 'Tree_database'),
@@ -120,21 +121,23 @@ def main():
 	shutil.copyfile(os.path.join(out_dir, 'Tree_database', 'hclsMap_95_recls.txt'), cls_res)
 	dc95_l2 = manual(icf, fa_dir)
 	
-	# Delete tem dir
+	# Delete temp dir
 	shutil.rmtree(os.path.join(out_dir, 'Tree_database', 'test'))
 
 	# --------- Inside cluster strains kmer sets construction -------
-	Build_kmer_sets_unique_region_lasso_test_allinone_sp.build_kmer_sets(dc95_l2,kmer_sets_l2,ksize,uknum,gkratio,mas,threads)
-	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))+' - StrainScan::build_DB:: Build sparse matices done '+u'- Current Memory Usage: %.4f GB' % (psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024 / 1024) )
+	logging.info('Inside cluster strains kmer sets construction')
+	Build_kmer_sets_unique_region_lasso_test_allinone_sp.build_kmer_sets(dc95_l2,kmer_sets_l2, args.ksize, 
+                                                                          uknum, gkratio, mas, threads)
+	print(str(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))) + ' - StrainScan::build_DB:: Build sparse matices done '+u'- Current Memory Usage: %.4f GB' % (psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024 / 1024) )
 
 	# --------- Build Overlap matrix -----------
+	logging.info('Building Overlap matrix')
 	new_cls_file = os.path.join(out_dir, 'Tree_database', 'hclsMap_95_recls.txt')
 	Build_overlap_matrix_sp.build_omatrix(fa_dir, new_cls_file, os.path.join(kmer_sets_l2, 'Kmer_Sets'), threads)
 
 	# --------- Delete temp dir ---------
 	shutil.rmtree(os.path.join(kmer_sets_l2, 'Colinear_Block'))
 	
-
-
+ 
 if __name__=='__main__':
 	main()
