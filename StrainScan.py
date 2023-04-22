@@ -101,6 +101,7 @@ def main():
 	# Get para
 	parser=argparse.ArgumentParser(prog='StrainScan.py',description=usage)
 	parser.add_argument('-i','--input_fastq',dest='input_fq',type=str,required=True,help="The dir of input fastq data --- Required")
+	parser.add_argument('-j','--input_fastq_2',dest='input_fq2',type=str,help="The dir of input fastq data (for pair-end data).")
 	parser.add_argument('-d','--database_dir',dest='db_dir',type=str,required=True,help="The dir of your database --- Required")
 	parser.add_argument('-o','--output_dir',dest='out_dir',type=str,help='Output dir (default: current dir/StrainVote_Result)')
 	parser.add_argument('-k','--kmer_size',dest='ksize',type=str,help='The size of kmer, should be odd number. (default: k=31)')
@@ -113,6 +114,7 @@ def main():
 
 	args=parser.parse_args()
 	fq_dir=args.input_fq
+	fq2=args.input_fq2
 	db_dir=args.db_dir
 	out_dir=args.out_dir
 	ksize=args.ksize
@@ -122,6 +124,8 @@ def main():
 	emode=args.emode
 	rgenome=args.rgenome
 	msn=args.msn
+	if not fq2:
+		fq2=''
 	if not ldep:
 		ldep=0
 	else:
@@ -155,7 +159,7 @@ def main():
 	#pcls,uniq_strain,apcls=Vote_Cls_KK.vote_cls(fq_dir,db_dir,out_dir)
 	#overlap_kmr=get_overlap_kmr(db_dir,apcls,pcls)
 	# Step2 -> Vote Cls
-	in_fq=(fq_dir)
+	in_fq=(fq_dir,fq2)
 	l2=0
 	#cls_dict=identify_cluster_u.identify_cluster(in_fq,'/home/yongxinji2/worktemp/Tree_database')
 	if ldep==0:
@@ -207,12 +211,12 @@ def main():
 			cls_dict = identify.identify_cluster(in_fq, tdb, [0.005, 0.01, 1])
 			l2 = 1
 		kdb=d_out_dir+'/DB_plasmid'
-		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir, kdb, out_dir, ksize, dict(cls_dict), l2, msn,pmode,emode)
+		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir,fq2, kdb, out_dir, ksize, dict(cls_dict), l2, msn,pmode,emode)
 		#exit()
 	elif emode==1:
-		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir, db_dir, out_dir, ksize, dict(cls_dict), l2, msn,pmode,emode)
+		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir,fq2, db_dir, out_dir, ksize, dict(cls_dict), l2, msn,pmode,emode)
 	else:
-		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir,db_dir,out_dir,ksize,dict(cls_dict),l2,msn,pmode,emode)
+		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir,fq2, db_dir,out_dir,ksize,dict(cls_dict),l2,msn,pmode,emode)
 	
 
 if __name__=='__main__':
