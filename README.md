@@ -109,7 +109,7 @@ One example about database construction and identification commands can be found
  or
   `python StrainScan.py -i Sim_Data_mul/GCA_000144385_5X_GCF_008868325_5X.fq -d  DB_Small -o Test_Sim/GCA_000144385_5X_GCF_008868325_5X `<BR/>
   
-  PE reads (can be gzipped FASTQ format)
+  PE reads (can be gzipped FASTQ format)<BR/>
    `python StrainScan.py -i GCF_003812785_1.fq.gz -j GCF_003812785_2.fq.gz -d DB_Small -o Test_Sim/GCF_003812785`<BR/>
 
 ### Use StrainScan to identify plasmids of bacterial strains in short reads.
