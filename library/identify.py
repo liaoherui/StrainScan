@@ -2,6 +2,9 @@ import pickle as pkl
 from treelib import Tree, Node
 import scipy.stats as st
 import os
+import re
+import subprocess
+import sys
 import uuid
 from collections import defaultdict
 import random
@@ -65,14 +68,19 @@ def get_node_label(db_dir, tree):
 
 
 def jellyfish_count(fq_path, db_dir):
+    raw_path=fq_path
     if(type(fq_path) != str):
         fq_path = " ".join(fq_path)
     dir_jf = os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
     uid = uuid.uuid1().hex
     jf_res_path = "temp_"+uid+".fa"
-    #if(os.path.exists(jf_res_path) == False):
-    os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + fq_path)
-    os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
+    if re.split('\.',raw_path[0])[-1]=='gz' or re.split('\.',raw_path[1])[-1]=='gz':
+        cmd1='zcat '+fq_path+' | '+dir_jf+' count /dev/fd/0 -m 31 -s 100M -t 8 --if '+db_dir+'/kmer.fa -o temp_'+uid+'.jf'
+        subprocess.check_output(cmd1,shell=True)
+        os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
+    else:
+        os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + fq_path)
+        os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
     os.system("rm temp_"+uid+".jf")
     kmer_index_dict = {}
     f = open(db_dir+"/kmer.fa", "r")

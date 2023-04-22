@@ -1,5 +1,6 @@
 import re
 import os
+import subprocess
 import numpy as np
 from collections import defaultdict
 import sys
@@ -243,7 +244,7 @@ def generate_single_report(in_dict,out_dir):
 		c+=1
 
 	
-def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn,pmode,emode):
+def vote_strain_L2_batch(input_fq,fq2,db_dir,out_dir,ksize,res,l2,msn,pmode,emode):
 	check=check_L1_res(res)
 	if check==1:
 		print('- Only single cluster is identified, will not go to the 2nd layer identification ...')
@@ -266,7 +267,7 @@ def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn,pmode,emode):
 			cls_cov=res[r]['cls_cov']
 			#overlap_kmr={}
 			#union_kmr={}
-			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode]
+			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode,fq2]
 			#vote_strain_L2(input_fq,nd,cls_out,ksize,cls_ab,overlap_kmr,ok_percent)
 			vote_strain_L2(item)
 			os.system('cp '+cls_out+'/StrainVote.report '+out_dir+'/final_report.txt')
@@ -288,7 +289,7 @@ def vote_strain_L2_batch(input_fq,db_dir,out_dir,ksize,res,l2,msn,pmode,emode):
 			build_dir(cls_out)
 			cls_ab=res[r]['cls_ab']
 			cls_cov=res[r]['cls_cov']
-			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode]
+			item=[input_fq,nd,cls_out,ksize,cls_ab,cls,cls_cov,list(res.keys()),l2,msn,pmode,emode,fq2]
 			all_in_list.append(item)
 		print('- Parallel strain-level identification ...')
 		for item in all_in_list:
@@ -343,6 +344,7 @@ def vote_strain_L2(item):
 	msn=item[9]
 	pmode=item[10]
 	emode=item[11]
+	fq2=item[12]
 	kid_match=pickle.load(open(db_dir+"/all_kid.pkl","rb"))
 	#dk_match=pickle.load(open(db_dir+"/kmatch.pkl", "rb"))
 	
@@ -352,10 +354,25 @@ def vote_strain_L2(item):
 	dir_jf=os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
 	# First Step --- Use Jellyfish to count kmers
 	uid=uuid.uuid1().hex
-	os.system(dir_jf+' count -m '+str(ksize)+' -s 100M -t 10 --if '+db_dir+'/all_kmer.fasta -o '+cls+'_'+uid+'.jf '+input_fq)	
-	#print(dir_jf+' count -m '+str(ksize)+' -s 100M -t 8 --if '+db_dir+'/all_kmer.fasta -o Tem.jf '+input_fq)
-	#exit()
-	os.system(dir_jf+' dump -c '+cls+'_'+uid+'.jf > '+cls+'_'+uid+'.fa')
+	if fq2=='':
+		if re.split('\.',input_fq)[-1]=='gz':
+			cmd1='zcat '+input_fq+' | '+dir_jf+' count /dev/fd/0 -m '+str(ksize)+' -s 100M -t 10 --if '+db_dir+'/all_kmer.fasta -o '+cls+'_'+uid+'.jf '
+			subprocess.check_output(cmd1,shell=True)
+			os.system(dir_jf+' dump -c '+cls+'_'+uid+'.jf > '+cls+'_'+uid+'.fa')
+		else:
+			os.system(dir_jf+' count -m '+str(ksize)+' -s 100M -t 10 --if '+db_dir+'/all_kmer.fasta -o '+cls+'_'+uid+'.jf '+input_fq)
+			os.system(dir_jf+' dump -c '+cls+'_'+uid+'.jf > '+cls+'_'+uid+'.fa')
+	else:
+		if re.split('\.',input_fq)[-1]=='gz' or re.split('\.',fq2)[-1]=='gz':
+			cmd1='zcat '+input_fq+' '+fq2+' | '+dir_jf+' count /dev/fd/0 -m '+str(ksize)+' -s 100M -t 10 --if '+db_dir+'/all_kmer.fasta -o '+cls+'_'+uid+'.jf '
+			subprocess.check_output(cmd1,shell=True)
+			os.system(dir_jf+' dump -c '+cls+'_'+uid+'.jf > '+cls+'_'+uid+'.fa')
+		else:
+			os.system(dir_jf+' count -m '+str(ksize)+' -s 100M -t 10 --if '+db_dir+'/all_kmer.fasta -o '+cls+'_'+uid+'.jf '+input_fq+' '+fq2)
+			os.system(dir_jf+' dump -c '+cls+'_'+uid+'.jf > '+cls+'_'+uid+'.fa')
+
+
+
 	#exit()
 	# We will normalize y if there are multiple clusters identified! - Below.
 	tcls=re.sub('C','',cls)
