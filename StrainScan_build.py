@@ -26,20 +26,20 @@ def merge_cls(dc_in):
 	return dict(dc_out)
 
 
-def manual(icf,fa_dir):
-	dn={} # pre -> full file dir
+def manual(icf, fa_dir):
+	dn = {} # pre -> full file dir
 	for filename in os.listdir(fa_dir):
-		pre=re.split('\.',filename)[0]
-		dn[pre]=fa_dir+'/'+filename
-	f=open(icf,'r')
-	dc95_l2=defaultdict(lambda:{})
+		pre = os.path.splitext(filename)[0]
+		dn[pre] = os.path.join(fa_dir, filename)
+	f = open(icf,'r')
+	dc95_l2 = defaultdict(lambda:{})
 	while True:
-		line=f.readline().strip()
+		line = f.readline().strip()
 		if not line:break
-		ele=line.split('\t')
-		st=re.split(',',ele[-1])
+		ele = line.split('\t')
+		st = re.split(',',ele[-1])
 		for s in st:
-			dc95_l2[int(ele[0])][dn[s]]=''
+			dc95_l2[int(ele[0])][dn[s]] = ''
 	return dc95_l2
 
 	
@@ -75,7 +75,6 @@ def main():
 
 	args = parser.parse_args()
 	
-	fa_dir = args.input_fa
 	out_dir = args.out_dir
 	params = [0.8, args.mink, args.maxk, args.maxn]
 
@@ -95,7 +94,7 @@ def main():
 	
 	# Construct matrix with dashing (jaccard index)
 	logging.info('Constructing matrix with dashing (jaccard index)')
-	matrix = Cluster.construct_matrix(fa_dir)
+	matrix = Cluster.construct_matrix(args.input_fa)
 	
 	# -------- Hirarchical clustering Part --------
 	#### Default: Single: 0.95, Complete: 0.95
@@ -119,7 +118,7 @@ def main():
 	
 	icf = os.path.join(out_dir, 'Tree_database', 'hclsMap_95_recls.txt')
 	shutil.copyfile(os.path.join(out_dir, 'Tree_database', 'hclsMap_95_recls.txt'), cls_res)
-	dc95_l2 = manual(icf, fa_dir)
+	dc95_l2 = manual(icf, args.input_fa)
 	
 	# Delete temp dir
 	shutil.rmtree(os.path.join(out_dir, 'Tree_database', 'test'))
@@ -133,7 +132,7 @@ def main():
 	# --------- Build Overlap matrix -----------
 	logging.info('Building Overlap matrix')
 	new_cls_file = os.path.join(out_dir, 'Tree_database', 'hclsMap_95_recls.txt')
-	Build_overlap_matrix_sp.build_omatrix(fa_dir, new_cls_file, os.path.join(kmer_sets_l2, 'Kmer_Sets'), threads)
+	Build_overlap_matrix_sp.build_omatrix(args.input_fa, new_cls_file, os.path.join(kmer_sets_l2, 'Kmer_Sets'), threads)
 
 	# --------- Delete temp dir ---------
 	shutil.rmtree(os.path.join(kmer_sets_l2, 'Colinear_Block'))
