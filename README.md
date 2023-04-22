@@ -19,6 +19,10 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 * *(only GitHub version)Two new intra-cluster searching modes are updated: plasmid_mode and extraRegion_mode.<BR/>*
 
+#### *__[Update - 2023 - 04 - 22]__* :  <BR/>
+
+* *(only GitHub version)StrainScan is able to take gzipped and PE FASTQs as input now!<BR/>*
+
 
 ---------------------------------------------------------------------------
 ### Overview of StrainScan:
@@ -104,6 +108,9 @@ One example about database construction and identification commands can be found
   `python StrainScan.py -i Sim_Data/GCF_003812785.fq -d DB_Small -o Test_Sim/GCF_003812785`<BR/>
  or
   `python StrainScan.py -i Sim_Data_mul/GCA_000144385_5X_GCF_008868325_5X.fq -d  DB_Small -o Test_Sim/GCA_000144385_5X_GCF_008868325_5X `<BR/>
+  
+  PE reads (can be gzipped FASTQ format)
+   `python StrainScan.py -i GCF_003812785_1.fq.gz -j GCF_003812785_2.fq.gz -d DB_Small -o Test_Sim/GCF_003812785`<BR/>
 
 ### Use StrainScan to identify plasmids of bacterial strains in short reads.
   option-1: identify possible plasmids by using contigs <100000 bp:<BR/>
@@ -130,6 +137,7 @@ Example: python StrainScan.py -i  <Input_reads> -d <Database_Dir> -o <Output_Dir
 
 required arguments:
     -i, --input_fastq             Input fastq data.
+    -j, --input_fastq_2		  Input fastq data (for pair-end data).
     -d, --database_dir            Path of StrainScan database.
 
 optional arguments:
