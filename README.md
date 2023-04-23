@@ -97,10 +97,13 @@ You can also use bash scripts in the folder "Download_DB_script" to download the
 ## Usage
 One example about database construction and identification commands can be found in "<b>test_run.sh</b>".
 
-### Use StrainScan to build your own custom database. (input fasta can be gzipped format)<BR/>
+### Use StrainScan to build your own custom database.<BR/>
+
   `python StrainScan_build.py -i <Input_Genomes> -o <Database_Dir>`<BR/>
 <BR/>eg:
   `python StrainScan_build.py -i Test_genomes -o DB_Small`<BR/>
+
+(Note: input fasta can be gzipped format)
 
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
