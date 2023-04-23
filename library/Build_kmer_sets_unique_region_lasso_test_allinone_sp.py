@@ -11,6 +11,7 @@ import math
 import pickle
 import Recls_withR_new
 import scipy.sparse as sp
+import gzip
 import numpy as np
 import gc
 import time
@@ -50,7 +51,11 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 			sid_match[pre]=s # Name -> Strain id
 			ids_match[s]=pre # ID -> Strain Name
 			#o=open(out_dir+'/'+pre+'.fasta','w+')
-			seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(s2, "fasta")}
+			if re.split('\.',s2)[-1]=='gz':
+				with gzip.open(s2, "rt") as handle:
+					seq_dict = {rec.id: rec.seq for rec in SeqIO.parse(handle, "fasta")}
+			else:
+				seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(s2, "fasta")}
 			for cl in seq_dict:
 				seq=str(seq_dict[cl])
 				#rev_seq=seqpy.revcomp(seq)
@@ -153,7 +158,11 @@ def find_unique_kmers_inside_cls(d,out_dir,ksize,dlabel,uknum):
 
 
 def connect_genome(input_genome):
-	seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(input_genome, "fasta")}
+	if re.split('\.',input_genome)[-1]=='gz':
+		with gzip.open(input_genome, "rt") as handle:
+			seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(handle, "fasta")}
+	else:
+		seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(input_genome, "fasta")}
 	contig_num=len(seq_dict)
 	all_seq=[]
 	for s in seq_dict:
@@ -511,7 +520,11 @@ def build_kmer_dict(d,k):
 	label_match={}
 	for g in d:
 		print('Process: ',c,'/',len(d))
-		seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(g, "fasta")}
+		if re.split('\.',g)[-1]=='gz':
+			with gzip.open(g, "rt") as handle:
+				seq_dict = {rec.id: rec.seq for rec in SeqIO.parse(handle, "fasta")}
+		else:
+			seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(g, "fasta")}
 		for cl in seq_dict:
 			seq=str(seq_dict[cl])
 			#rev_seq=seqpy.revcomp(seq)

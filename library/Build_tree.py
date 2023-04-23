@@ -8,6 +8,8 @@ from collections import defaultdict
 import bidict
 import random
 import os
+import gzip
+import re
 
 
 # hierarchical clustering
@@ -91,18 +93,33 @@ def hierarchy(fna_mapping, dist):
 def extract_kmers(fna_i, fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, identifier):
     kmer_sta = defaultdict(int)
     for j in fna_i:
-        for seq_record in SeqIO.parse(fna_path[j], "fasta"):
-            temp = str(seq_record.seq)
-            for k in range(0, len(temp)-ksize):
-                forward = temp[k:k+ksize]
-                reverse = seqpy.revcomp(forward)
-                for kmer in [forward, reverse]:
-                    try:
-                        kmer_sta[kmer_index_dict[kmer]] += 1
-                    except KeyError:
-                        kmer_index_dict[kmer] = kmer_index
-                        kmer_sta[kmer_index] += 1
-                        kmer_index += 1
+        if re.split('\.',fna_path[j])[-1]=='gz':
+            with gzip.open(fna_path[j], "rt") as handle:
+                for seq_record in SeqIO.parse(handle, "fasta"):
+                    temp = str(seq_record.seq)
+                    for k in range(0, len(temp)-ksize):
+                        forward = temp[k:k+ksize]
+                        reverse = seqpy.revcomp(forward)
+                        for kmer in [forward, reverse]:
+                            try:
+                                kmer_sta[kmer_index_dict[kmer]] += 1
+                            except KeyError:
+                                kmer_index_dict[kmer] = kmer_index
+                                kmer_sta[kmer_index] += 1
+                                kmer_index += 1
+        else:
+            for seq_record in SeqIO.parse(fna_path[j], "fasta"):
+                temp = str(seq_record.seq)
+                for k in range(0, len(temp)-ksize):
+                    forward = temp[k:k+ksize]
+                    reverse = seqpy.revcomp(forward)
+                    for kmer in [forward, reverse]:
+                        try:
+                            kmer_sta[kmer_index_dict[kmer]] += 1
+                        except KeyError:
+                            kmer_index_dict[kmer] = kmer_index
+                            kmer_sta[kmer_index] += 1
+                            kmer_index += 1
     alpha = len(fna_i) * alpha_ratio
     for x in kmer_sta:
         if(kmer_sta[x] >= alpha):
@@ -274,18 +291,34 @@ def build_tree(arg):
         alpha_ratio = 1
         Lv = set()
         for i in fna_mapping[T0.identifier]:
-            for seq_record in SeqIO.parse(fna_path[i], "fasta"):
-                temp = str(seq_record.seq)
-                for k in range(0, len(temp)-ksize):
-                    forward = temp[k:k+ksize]
-                    reverse = seqpy.revcomp(forward)
-                    for kmer in [forward, reverse]:
-                        try:
-                            kmer_sta[kmer_index_dict[kmer]] += 1
-                        except KeyError:
-                            kmer_index_dict[kmer] = kmer_index
-                            kmer_sta[kmer_index] += 1
-                            kmer_index += 1
+            #print(fna_path[i])
+            if re.split('\.',fna_path[i])[-1]=='gz':
+                with gzip.open(fna_path[i], "rt") as handle:
+                    for seq_record in SeqIO.parse(handle, "fasta"):
+                        temp = str(seq_record.seq)
+                        for k in range(0, len(temp)-ksize):
+                            forward = temp[k:k+ksize]
+                            reverse = seqpy.revcomp(forward)
+                            for kmer in [forward, reverse]:
+                                try:
+                                    kmer_sta[kmer_index_dict[kmer]] += 1
+                                except KeyError:
+                                    kmer_index_dict[kmer] = kmer_index
+                                    kmer_sta[kmer_index] += 1
+                                    kmer_index += 1
+            else:
+                for seq_record in SeqIO.parse(fna_path[i], "fasta"):
+                    temp = str(seq_record.seq)
+                    for k in range(0, len(temp)-ksize):
+                        forward = temp[k:k+ksize]
+                        reverse = seqpy.revcomp(forward)
+                        for kmer in [forward, reverse]:
+                            try:
+                                kmer_sta[kmer_index_dict[kmer]] += 1
+                            except KeyError:
+                                kmer_index_dict[kmer] = kmer_index
+                                kmer_sta[kmer_index] += 1
+                                kmer_index += 1
         alpha = len(fna_mapping[T0.identifier]) * alpha_ratio
         for x in kmer_sta:
             if(kmer_sta[x] >= alpha):

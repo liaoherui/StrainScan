@@ -9,6 +9,7 @@ import numpy as np
 import multiprocessing
 import time
 import pickle
+import gzip
 
 def load_cls(cls95):
 	d2=defaultdict(lambda:{}) # id -> {strains}
@@ -38,7 +39,11 @@ def build_kmer_dict(ddir,k,dsi,cls_num):
 	#exit()
 	for pre in ddir:
 		g=ddir[pre]
-		seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(g, "fasta")}
+		if re.split('\.',g)[-1]=='gz':
+			with gzip.open(g, "rt") as handle:
+				seq_dict = {rec.id: rec.seq for rec in SeqIO.parse(handle, "fasta")}
+		else:
+			seq_dict = {rec.id : rec.seq for rec in SeqIO.parse(g, "fasta")}
 		for cl in seq_dict:
 			seq=str(seq_dict[cl])
 			#dseq[pre].append(seq)
