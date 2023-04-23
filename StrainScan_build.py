@@ -29,7 +29,7 @@ def merge_cls(dc_in):
 def manual(icf, fa_dir):
 	dn = {} # pre -> full file dir
 	for filename in os.listdir(fa_dir):
-		pre = os.path.splitext(filename)[0]
+		pre = re.split('\.',filename)[0]
 		dn[pre] = os.path.join(fa_dir, filename)
 	f = open(icf,'r')
 	dc95_l2 = defaultdict(lambda:{})
