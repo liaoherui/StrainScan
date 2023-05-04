@@ -170,6 +170,7 @@ required arguments:
      
 optional arguments:
      -o, --output_dir              The output directory of constructed database. (Default: ./StrainScan_DB)
+     -c, --cls_file		   The custom clustering file provided by user.
      -k, --kmer_size               The size of k-mer, should be odd number. (Default: k=31)
      -t, --threads		   The threads used to build the database. (default: t=1)
      -u, --uk_num                  The maximum number of unique k-mers in each genome to extract. (Default: 100000)
