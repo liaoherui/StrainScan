@@ -55,6 +55,9 @@ def main():
 	parser.add_argument('-o', '--output_dir', dest='out_dir', type=str, 
                         default=os.path.join(os.getcwd(), 'StrainScan_DB'),
                         help='Output directory.')
+	parser.add_argument('-c', '--cls_file', dest='cls_custom_file', type=str,
+						default='',
+						help='The custom clustering file provided by user.')
 	parser.add_argument('-k', '--kmer_size', dest='ksize', type=int, default=31,
                         help='The size of kmer, should be odd number.')
 	parser.add_argument('-t', '--threads', dest='threads', type=int, default=1,
@@ -102,6 +105,9 @@ def main():
 	logging.info('Hierarchical clustering')
 	dc95 = Cluster.hcls(matrix, 'single', '0.05')
 	os.system('mv hclsMap_* distance_matrix_rebuild.txt distance_matrix.txt '+cls_res)
+	if not args.cls_custom_file=='':
+		shutil.copy(args.cls_custom_file,os.path.join(cls_res, 'hclsMap_95.txt'))
+	#exit()
 	cls_file = os.path.join(cls_res, 'hclsMap_95.txt')
 	dc95_rep,dc95_l2 = select_rep.pick_rep(os.path.join(cls_res, 'distance_matrix_rebuild.txt'), 
                                            cls_file, cls_res)
