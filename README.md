@@ -109,6 +109,10 @@ One example about database construction and identification commands can be found
 
 (Note: input fasta can be gzipped format)
 
+### Use StrainScan to build your own custom database with custom clustering file.
+  `python StrainScan_build.py -i <Input_Genomes> -c <Cluster_file>-o <Database_Dir>`<BR/>
+  <BR/> The data format of the input clustering file can be found in the demo file `Custom_cluster_demo/custom_cls.txt`, where the first column is the cluster ID, the second column is the cluster size, and the last column is the prefix of the reference genomes in the cluster.
+
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
 <BR/>eg:
