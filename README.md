@@ -115,7 +115,7 @@ One example about database construction and identification commands can be found
   
 ### Use StrainScan_subsample to subsample your large-scale strains with high redundancy.
    `python StrainScan_subsample.py -i <Input_Genomes> -o <Output_Dir>`<BR/>
-  <BR/> If you have large-scale strains with high redundancy and you want to remove the redundancy. Then you can use this script, which utilizes dashing and hierarchical clustering to subsample strains efficiently. More parameters can be found using  `python StrainScan_subsample.py -h`.
+  <BR/> If you have large-scale strains with high redundancy and you want to remove the redundancy. Then you can use this script, which utilizes dashing and hierarchical clustering to subsample strains efficiently. The subsampled strains can be found in `<Output_Dir>/Rep_ref` and clustering information can be found in `<Output_Dir>/Cls_res`. More parameters can be found using  `python StrainScan_subsample.py -h`.
 
 ### Use StrainScan to identify bacterial strains in short reads.
   `python StrainScan.py -i <Input_reads> -d <Database_Dir> -o <Output_Dir>`<BR/>
