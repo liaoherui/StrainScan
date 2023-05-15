@@ -29,7 +29,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 #### *__[Update - 2023 - 05 - 15]__* :  <BR/>
 
-* *(only GitHub version)Add a parameter "-b" that enables StrainScan to output the prabability of detecting a strain in samples with low sequencing depth (e.g. <1X).
+* *(only GitHub version)Add a parameter "-b" that enables StrainScan to output the prabability of detecting a strain in samples with low sequencing depth (e.g. <1X).<BR/>*
 
 
 
