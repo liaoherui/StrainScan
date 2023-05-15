@@ -133,7 +133,7 @@ One example about database construction and identification commands can be found
   PE reads (can be gzipped FASTQ format)<BR/>
    `python StrainScan.py -i GCF_003812785_1.fq.gz -j GCF_003812785_2.fq.gz -d DB_Small -o Test_Sim/GCF_003812785`<BR/>
    
-Note: if the sequencing depth of targeted strains is super low (e.g., <1X), then you may get "Warning: No clusters can be detected!". In this case, you can use parameter "-b" to output the probability of detecting a strain in low-depth samples. The higher the probability, the more likely the strain (cluster) is to be present.<BR/>
+Note: if the sequencing depth of targeted strains is super low (e.g., <1X), then you may get "Warning: No clusters can be detected!". In this case, you can use parameter "-b" to output the probability of detecting a strain (cluster) in low-depth samples. The higher the probability, the more likely the strain (cluster) is to be present.<BR/>
     eg:
     `python StrainScan.py -i <Input_reads> -d <Database_Dir> -b 1 -o <Output_Dir>`<BR/>
   
