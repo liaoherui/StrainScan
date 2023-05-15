@@ -57,7 +57,7 @@ def main():
                         help='Output directory.')
 	parser.add_argument('-c', '--cls_type', dest='cls_type', type=str,
 						default='complete',
-						help='The type of hierarchical clustering file, can be \"single\" or \"complete\".')
+						help='The type of hierarchical clustering method, can be \"single\" or \"complete\".')
 	parser.add_argument('-d', '--distance', dest='dist', type=float, default=0.99,
                         help='The distance cutoff of hierarchical cluster.')
 
