@@ -235,6 +235,9 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
         print("%d:    %f | %f    %d"%(node.identifier, abundance[node], cov[node], length[node]))
         if(abundance[node]>=ab_cutoff):
             pending.append(tree.children(node.identifier))
+        else:
+            del pending[0]
+            return 1
         if(pending[1]==[]):
             res_temp.append(group[0])
             del pending[0]
