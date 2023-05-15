@@ -4,7 +4,7 @@ import sys
 import argparse
 sys.path.append('library')
 from collections import defaultdict
-from library import identify,Vote_Strain_L2_Lasso_new_sp
+from library import identify,identify_low_mem,identify_low_depth,Vote_Strain_L2_Lasso_new_sp
 import pickle
 
 
@@ -95,6 +95,20 @@ def load_db_cls(db_dir,cls_dict,odir,rgenome):
 
 	return out_dir
 
+def generate_prob_report(prob_dict,out_dir,db_dir):
+	f=open(db_dir+'/hclsMap_95_recls.txt','r')
+	d={}
+	while True:
+		line=f.readline().strip()
+		if not line:break
+		ele=line.split('\t')
+		d[int(ele[0])]=ele[-1]
+	op=open(out_dir+'/strain_prob.txt','w+')
+	op.write('Cluster_ID\tProbability\tNumber_of_strains\tStrains_in_the_cluster\n')
+	for p in prob_dict:
+		st=re.split(',',d[p[0]])
+		op.write('C'+str(p[0])+'\t'+str(p[1])+'\t'+str(len(st))+'\t'+d[p[0]]+'\n')
+	op.close()
 
 def main():
 	pwd=os.getcwd()
@@ -106,6 +120,7 @@ def main():
 	parser.add_argument('-o','--output_dir',dest='out_dir',type=str,help='Output dir (default: current dir/StrainVote_Result)')
 	parser.add_argument('-k','--kmer_size',dest='ksize',type=str,help='The size of kmer, should be odd number. (default: k=31)')
 	parser.add_argument('-l','--low_dep',dest='ldep',type=str,help='This parameter can be set to \"1\" if the sequencing depth of input data is very low (e.g. < 10x). For super low depth ( < 1x ), you can use \"-l 2\"  (default: -l 0)')
+	parser.add_argument('-b', '--strain_prob', dest='sprob', type=str,help='If this parameter is set to 1, then the algorithm will output the probabolity of detecting a strain (or cluster) in low-depth (e.g. <1x) samples.  (default: -b 0)')
 	parser.add_argument('-p', '--plasmid_mode', dest='pmode', type=str, help='If this parameter is set to 1, the intra-cluster searching process will search possible plasmids using short contigs (<100000 bp) in strain genomes, which are likely to be plasmids. If this parameter is set to 2, the intra-cluster searching process will search possible strains using given reference genomes by \"-r\". Reference genome sequences (-r) are required if this mode is used. (default: -p 0)')
 	parser.add_argument('-r', '--ref_genome', dest='rgenome', type=str,help='The dir of reference genomes of identified cluster or all strains. If plasmid_mode is used, then this parameter is required.')
 	parser.add_argument('-e', '--extraRegion_mode', dest='emode', type=str,help='If this parameter is set to 1, the intra-cluster searching process will search possible strains and return strains with extra regions (could be different genes, SNVs or SVs to the possible strains) covered.  (default: -e 0)')
@@ -120,6 +135,7 @@ def main():
 	ksize=args.ksize
 	ksize=initial_para(ksize,31)
 	ldep=args.ldep
+	sprob=args.sprob
 	pmode=args.pmode
 	emode=args.emode
 	rgenome=args.rgenome
@@ -130,6 +146,10 @@ def main():
 		ldep=0
 	else:
 		ldep=int(ldep)
+	if not sprob:
+		sprob=0
+	else:
+		sprob=int(sprob)
 	if not pmode:
 		pmode=0
 	else:
@@ -162,20 +182,40 @@ def main():
 	in_fq=(fq_dir,fq2)
 	l2=0
 	#cls_dict=identify_cluster_u.identify_cluster(in_fq,'/home/yongxinji2/worktemp/Tree_database')
+	if sprob==1:
+		prob_dict=identify_low_depth.identify_ranks(in_fq,db_dir+'/Tree_database')
+		generate_prob_report(prob_dict,out_dir,db_dir+'/Tree_database')
+	if os.path.exists(db_dir+'/Memory_DB'):
+		mdb=1
+	else:
+		mdb=0
 	if ldep==0:
-		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.1,0.4,1])
+		if mdb==1:
+			cls_dict = identify_low_mem.identify_cluster(in_fq, db_dir + '/Tree_database', [0.1, 0.4, 1])
+		else:
+			cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.1,0.4,1])
 		if len(cls_dict)==0:
-			cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.05,0.05,1])
+			if mdb==1:
+				cls_dict = identify_low_mem.identify_cluster(in_fq, db_dir + '/Tree_database', [0.05,0.05,1])
+			else:
+				cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.05,0.05,1])
 			l2=1
 		if len(cls_dict)==0:
 			print('Warning: No clusters can be detected!')
 			exit()
 	elif ldep==1:
-		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.05,1])
+		if mdb == 1:
+			cls_dict = identify_low_mem.identify_cluster(in_fq, db_dir + '/Tree_database', [0.01,0.05,1])
+		else:
+			cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.01,0.05,1])
 		l2=1
 	elif ldep==2:
-		cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.005,0.01,1])
+		if mdb==1:
+			cls_dict = identify_low_mem.identify_cluster(in_fq, db_dir + '/Tree_database', [0.005,0.01,1])
+		else:
+			cls_dict=identify.identify_cluster(in_fq,db_dir+'/Tree_database',[0.005,0.01,1])
 		l2=1
+
 
 	#cls_dict.update(uniq_strain)
 	if len(cls_dict)==0:
@@ -197,18 +237,30 @@ def main():
 		#exit()
 		tdb=d_out_dir+'/DB_plasmid/Tree_database'
 		if ldep == 0:
-			cls_dict = identify.identify_cluster(in_fq, tdb, [0.1, 0.4, 1])
+			if mdb == 1:
+				cls_dict = identify_low_mem.identify_cluster(in_fq, tdb, [0.1, 0.4, 1])
+			else:
+				cls_dict = identify.identify_cluster(in_fq, tdb, [0.1, 0.4, 1])
 			if len(cls_dict) == 0:
-				cls_dict = identify.identify_cluster(in_fq, tdb, [0.05, 0.05, 1])
+				if mdb==1:
+					cls_dict = identify_low_mem.identify_cluster(in_fq, tdb, [0.05, 0.05, 1])
+				else:
+					cls_dict = identify.identify_cluster(in_fq, tdb, [0.05, 0.05, 1])
 				l2 = 1
 			if len(cls_dict) == 0:
 				print('Warning: No clusters can be detected!')
 				exit()
 		elif ldep == 1:
-			cls_dict = identify.identify_cluster(in_fq, tdb, [0.01, 0.05, 1])
+			if mdb==1:
+				cls_dict = identify_low_mem.identify_cluster(in_fq, tdb, [0.01, 0.05, 1])
+			else:
+				cls_dict = identify.identify_cluster(in_fq, tdb, [0.01, 0.05, 1])
 			l2 = 1
 		elif ldep == 2:
-			cls_dict = identify.identify_cluster(in_fq, tdb, [0.005, 0.01, 1])
+			if mdb==1:
+				cls_dict = identify_low_mem.identify_cluster(in_fq, tdb, [0.005, 0.01, 1])
+			else:
+				cls_dict = identify.identify_cluster(in_fq, tdb, [0.005, 0.01, 1])
 			l2 = 1
 		kdb=d_out_dir+'/DB_plasmid'
 		Vote_Strain_L2_Lasso_new_sp.vote_strain_L2_batch(fq_dir,fq2, kdb, out_dir, ksize, dict(cls_dict), l2, msn,pmode,emode)
