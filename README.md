@@ -228,5 +228,5 @@ Exist evidence  | By default, identified strains with "relative abundance > 0.02
 
 how to cite this tool:
 ```
-Liao, H., Ji, Y., & Sun, Y. Accurate strain-level microbiome composition analysis from short reads. bioRxiv. 2022. https://doi.org/10.1101/2022.01.26.477962
+Liao, H., Ji, Y. & Sun, Y. High-resolution strain-level microbiome composition analysis from short reads. Microbiome 11, 183 (2023). https://doi.org/10.1186/s40168-023-01615-w
 ```
