@@ -99,7 +99,10 @@ You can also use bash scripts in the folder "Download_DB_script" to download the
  `cd Download_DB_script`<BR/>
  `sh ecoli_db.sh`<BR/>
 
-
+ If you can not download databases from the google drive, you may try to download databases from the Baidu Netdisk.<BR/>
+  Baidu Netdisk link: `https://pan.baidu.com/s/1YFtHv2weJEBdwTz4LmTKOQ `<BR/>
+  Extraction code: `ASDF`<BR/>
+  
 
 
 
