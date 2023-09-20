@@ -24,6 +24,7 @@ dependencies:
   - freetype=2.10.4
   - fribidi=1.0.10
   - gcc_impl_linux-64=7.5.0
+  - psutil=5.9.1
   - gcc_linux-64=7.5.0
   - gettext=0.19.8.1
   - gfortran_impl_linux-64=7.5.0
