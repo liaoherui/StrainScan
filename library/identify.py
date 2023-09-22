@@ -73,6 +73,7 @@ def jellyfish_count(fq_path, db_dir):
         fq_path = " ".join(fq_path)
     dir_jf = os.path.split(os.path.abspath(__file__))[0]+'/jellyfish-linux'
     uid = uuid.uuid1().hex
+    
     jf_res_path = "temp_"+uid+".fa"
     if re.split('\.',raw_path[0])[-1]=='gz' or re.split('\.',raw_path[1])[-1]=='gz':
         cmd1='zcat '+fq_path+' | '+dir_jf+' count /dev/fd/0 -m 31 -s 100M -t 8 --if '+db_dir+'/kmer.fa -o temp_'+uid+'.jf'
@@ -82,6 +83,7 @@ def jellyfish_count(fq_path, db_dir):
         os.system(dir_jf + " count -m 31 -s 100M -t 8 --if " + db_dir+"/kmer.fa -o temp_"+uid+".jf " + fq_path)
         os.system(dir_jf+" dump -c temp_"+uid+".jf > temp_"+uid+".fa")
     os.system("rm temp_"+uid+".jf")
+    
     kmer_index_dict = {}
     f = open(db_dir+"/kmer.fa", "r")
     lines = f.readlines()
@@ -223,7 +225,7 @@ def adjust_profile(node, results, valid_kmers, length, abundance, cov, match_res
             return 'o2'
 
 
-def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info):
+def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info, qualified_parents):
     group = pending[0]
     print("__________________________________________________")
     if(len(group)==1 and group[0].data[0]!=0):  # root node is strong
@@ -341,6 +343,8 @@ def search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, 
     ab_temp = {}
     for i in range(0, 2):
         ab_temp[group[i]] = round(abundance[group[i]])
+        if(cov[group[i]]>=0.95):
+            qualified_parents.append(group[i])
     if(list(ab_temp.values()) == [0, 0]):
         del pending[0]
         return 1
@@ -402,7 +406,7 @@ def identify_cluster(fq_path, db_dir, cutoff):
     match_results = jellyfish_count(fq_path, db_dir)
     valid_kmers = set(match_results.keys())
     leaves = tree.leaves()
-
+    
     # CST search
     ab_cutoff = cutoff[2]
     cov_cutoff = cutoff[0]
@@ -414,9 +418,10 @@ def identify_cluster(fq_path, db_dir, cutoff):
     abundance = {}
     alternative = []
     overlapping_info = defaultdict(dict)
+    qualified_parents = []
     while(len(pending)!=0):
         res_temp = []
-        search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info)
+        search(pending, match_results, db_dir, valid_kmers, length, cov, abundance, cov_cutoff, ab_cutoff, results, leaves, res_temp, tree, overlapping_info, qualified_parents)
         for j in res_temp:
             label = res_node_proc(j, wa_cov_cutoff, length, cov, abundance, tree)
             alternative.append(j)
@@ -460,6 +465,24 @@ def identify_cluster(fq_path, db_dir, cutoff):
             if(label == 1):
                 results = [r]
                 total_ab = r.data[4]
+    
+    # qualified parents
+    if(len(results)==0):
+        qualified_parent = qualified_parents[-1].identifier
+        cov_tmp = {}
+        leaves = set(leaves)
+        for node in cov:
+            if(node in leaves):
+                if(tree.is_ancestor(qualified_parent, node.identifier)):
+                    cov_tmp[node] = cov[node]
+        max_key = max(cov_tmp, key=cov_tmp.get)
+        results = [max_key]
+        check_access(max_key, tree)
+        max_key.data[2] = 0
+        max_key.data[3] = 0
+        res_node_proc(max_key, wa_cov_cutoff, length, cov, abundance, tree)
+        total_ab = max_key.data[4]
+
     res = defaultdict(lambda:{})
     for i in results:
         res[i.identifier]['cls_ab'] = i.data[4]
