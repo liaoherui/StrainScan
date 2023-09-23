@@ -31,6 +31,10 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 * *(only GitHub version)Add a parameter "-b" that enables StrainScan to output the probability of detecting a strain in samples with low sequencing depth (e.g. <1X).<BR/>*
 
+#### *__[Update - 2023 - 09 - 23]__* :  <BR/>
+
+* * One database containing 1627 Staphylococcus aureus strains is publicly available!<BR/>*
+
 
 
 ---------------------------------------------------------------------------
