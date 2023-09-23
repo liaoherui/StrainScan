@@ -33,7 +33,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 #### *__[Update - 2023 - 09 - 23]__* :  <BR/>
 
-* * One database containing 1627 Staphylococcus aureus strains is publicly available!<BR/>*
+* *One database containing 1627 Staphylococcus aureus strains is publicly available!<BR/>*
 
 
 
