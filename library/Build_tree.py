@@ -623,6 +623,7 @@ def build_tree(arg):
             temp = sorted(kmer_overlapping_sta.items(), key=lambda kv:(kv[1], kv[0]))
             kmer_t = set([])
             for j in range(0, maxsize):
+                if j not in temp:continue
                 kmer_t.add(temp[j][0])
         nkmer = {}
         f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
