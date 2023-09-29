@@ -622,7 +622,7 @@ def build_tree(arg):
                     kmer_overlapping_sta[k] += 1
             temp = sorted(kmer_overlapping_sta.items(), key=lambda kv:(kv[1], kv[0]))
             kmer_t = set([])
-            for j in range(0, min(len(temp), maxsize))
+            for j in range(0, min(len(temp), maxsize)):
                 #if j not in temp:continue
                 kmer_t.add(temp[j][0])
         nkmer = {}
