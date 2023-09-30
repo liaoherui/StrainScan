@@ -107,6 +107,7 @@ Escherichia coli |  NCBI | 1433 | 823  | [Google drive](https://drive.google.com
 Mycobacterium tuberculosis |  NCBI | 792 | 25  | [Google drive](https://drive.google.com/file/d/18pPGyHODRwYV_d-l-xOKiLkbj7WcHCR_/view?usp=sharing)
 Staphylococcus epidermidis |  NCBI | 995 | 378  | [Google drive](https://drive.google.com/file/d/1wwGubVO9F4r0pwHqQWQ2_NC151WDn96I/view?usp=sharing)
 Staphylococcus aureus |  NCBI | 1627 | 202  | [Google drive](https://drive.google.com/file/d/105qmCZFgVh_2i-nQuB80emyVVqcSQBhi/view?usp=sharing)
+Lactobacillus crispatus |  NCBI | 1124 | 311  | [Google drive](https://drive.google.com/file/d/1ENEfaKN2Mjrt1RHGIylhLIcP4NYogIFb/view?usp=sharing)
 
 You can also use bash scripts in the folder "Download_DB_script" to download the pre-built databases from Google drive. For example,
  
