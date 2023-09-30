@@ -8,7 +8,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 ### Version: V1.0.13 (update at 2023-09-29)
 
 <details>
-<summary>Click me to check the log of all updates</summary>
+<summary>Click here to check the log of all updates</summary>
 	
 #### *__[Update - 2022 - 05 - 01]__* :  <BR/>
 
