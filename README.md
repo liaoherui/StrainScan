@@ -7,6 +7,9 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 ### E-mail: heruiliao2-c@my.cityu.edu.hk / yxjijms@gmail.com
 ### Version: V1.0.13 (update at 2023-09-29)
 
+<details>
+<summary>Click me to check the log of all updates</summary>
+	
 #### *__[Update - 2022 - 05 - 01]__* :  <BR/>
 
 * *V1.0.3: StrainScan can be installed via bioconda now! <BR/>*
@@ -34,6 +37,8 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 #### *__[Update - 2023 - 09 - 23]__* :  <BR/>
 
 * *One database containing 1627 Staphylococcus aureus strains is publicly available!<BR/>*
+
+  </details>
 
 #### *__[Update - 2023 - 09 - 29]__* :  <BR/>
 
