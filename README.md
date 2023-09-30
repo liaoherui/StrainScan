@@ -42,7 +42,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 #### *__[Update - 2023 - 09 - 29]__* :  <BR/>
 
-* *V1.0.13: Update Bioconda version to latest GitHub version, which has more new functions!! <BR/>*
+* *V1.0.13: Update Bioconda version to latest GitHub version, which has more and new functions!! <BR/>*
 
 #### *__[Update - 2023 - 09 - 23]__* :  <BR/>
 
