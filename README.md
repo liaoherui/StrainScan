@@ -5,7 +5,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 ### Contributor: Liao Herui and Ji Yongxin (Ph.D of City University of Hong Kong, EE), Nick Youngblut
 ### E-mail: heruiliao2-c@my.cityu.edu.hk / yxjijms@gmail.com
-### Version: V1.0.13 (update at 2023-09-29)
+### Version: V1.0.14 (update at 2023-10-13)
 
 <details>
 <summary>Click here to check the log of all updates</summary>
