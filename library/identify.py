@@ -467,7 +467,7 @@ def identify_cluster(fq_path, db_dir, cutoff):
                 total_ab = r.data[4]
     
     # qualified parents
-    if(len(results)==0):
+    if(len(results)==0 and qualified_parents!=[]):
         qualified_parent = qualified_parents[-1].identifier
         cov_tmp = {}
         leaves = set(leaves)
