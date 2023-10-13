@@ -44,9 +44,13 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 * *V1.0.13: Update Bioconda version to latest GitHub version, which has more and new functions!! <BR/>*
 
-#### *__[Update - 2023 - 09 - 23]__* :  <BR/>
+#### *__[Update - 2023 - 10 - 03]__* :  <BR/>
 
 * *One database containing 1124 Lactobacillus crispatus strains is publicly available!<BR/>*
+
+#### *__[Update - 2023 - 10 - 13]__* :  <BR/>
+
+* *V1.0.14: Fix a bug in identify.py for the identification of low-depth strains! <BR/>*
 
 
 
