@@ -50,7 +50,7 @@ One efficient, accurate and high-resolution strain-level microbiome composition 
 
 #### *__[Update - 2023 - 10 - 13]__* :  <BR/>
 
-* *V1.0.14: Fix a bug in identify.py for the identification of low-depth strains! <BR/>*
+* *V1.0.14: Fix a bug in identify.py about the identification of low-depth strains! <BR/>*
 
 
 
