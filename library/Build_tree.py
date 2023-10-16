@@ -10,6 +10,8 @@ import random
 import os
 import gzip
 import re
+import sys
+import shutil
 
 
 # hierarchical clustering
@@ -126,7 +128,8 @@ def extract_kmers(fna_i, fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec,
             Lv[identifier].add(x)
         else:
             spec[identifier].add(x)
-    print(identifier, len(Lv[identifier]), len(spec[identifier]))
+    msg = [identifier, len(Lv[identifier]), len(spec[identifier])]
+    sys.stderr.write('\t'.join([str(x) for x in msg]) + '\n')
     return kmer_index
 
 
@@ -323,31 +326,31 @@ def build_tree(arg):
         for x in kmer_sta:
             if(kmer_sta[x] >= alpha):
                 Lv.add(x)
-        print(T0.identifier, len(Lv))
+        sys.stderr.write(f'{T0.identifier}\t{len(Lv)}\n')
         # save2file
         kmerlist = set()
-        pkl.dump(tree, open(tree_dir+'/tree.pkl', 'wb'))
-        f = open(tree_dir+"/tree_structure.txt", "w")
-        os.system("mkdir "+tree_dir+"/kmers")
-        os.system("mkdir "+tree_dir+"/overlapping_info")
-        f.write("%d\t"%T0.identifier)
+        pkl.dump(tree, open(os.path.join(tree_dir, 'tree.pkl'), 'wb'))
+        f = open(os.path.join(tree_dir, 'tree_structure.txt'), "w")
+        os.makedirs(os.path.join(tree_dir, 'kmers'), exist_ok=True)
+        os.makedirs(os.path.join(tree_dir, 'overlapping_info'), exist_ok=True)
+        f.write(f"{T0.identifier}\t")
         f.close()
-        os.system(f'cp {cls_file} {tree_dir}/')
-        f = open(tree_dir+"/reconstructed_nodes.txt", "w")
+        shutil.copy(cls_file, os.path.join(tree_dir, os.path.basename(cls_file))) 
+        f = open(os.path.join(tree_dir, 'reconstructed_nodes.txt'), "w")
         f.close()
         if(len(Lv) > maxsize):
             Lv = set(random.sample(Lv, maxsize))
         kmerlist = Lv
         length = len(Lv)
-        f = open(tree_dir+"/kmers/"+str(T0.identifier), "w")
+        f = open(os.path.join(tree_dir, "kmers", T0.identifier), "w")
         for j in Lv:
-            f.write("%d "%j)
+            f.write(f"{j} ")
         f.close()
-        f = open(tree_dir+"/node_length.txt", "w")
-        f.write("%d\t%d\n"%(T0.identifier, length))
+        f = open(os.path.join(tree_dir, "node_length.txt"), "w")
+        f.write(f"{T0.identifier}\t{length}\n")
         kmer_mapping = {}
         index = 0
-        f = open(tree_dir+"/kmer.fa", "w")
+        f = open(os.path.join(tree_dir, "kmer.fa"), "w")
         for i in kmerlist:
             f.write(">1\n")
             f.write(kmer_index_dict.inv[i])
@@ -357,20 +360,20 @@ def build_tree(arg):
         f.close()
 
         # change index
-        files = os.listdir(tree_dir+"/kmers")
+        files = os.listdir(os.path.join(tree_dir, "kmers"))
         for i in files:
-            f = open(tree_dir+"/kmers/"+i, "r")
+            f = open(os.path.join(tree_dir, f"kmers{i}"), "r")
             lines = f.readlines()
             if(len(lines) == 0):
                 continue
             d = lines[0].rstrip().split(" ")
             d = map(int, d)
-            f = open(tree_dir+"/kmers/"+i, "w")
+            f = open(os.path.join(tree_dir, f"kmers{i}"), "w")
             for j in d:
-                f.write("%d "%kmer_mapping[j])
+                f.write(f"{kmer_mapping[j]} ")
             f.close()
         end = time.time()
-        print('- The total running time of tree-based indexing struture building is ',str(end-start),' s\n')
+        sys.stderr.write(f'- The total running time of tree-based indexing structure building is: {end - start:.2f}s\n')
         return
     # initially build tree
     cls_dist, mapping, tree, depths, depths_mapping = hierarchy(fna_mapping, dist)
@@ -384,7 +387,7 @@ def build_tree(arg):
     for i in leaves:
         kmer_index = extract_kmers(fna_mapping[i.identifier], fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, i.identifier)
     end = time.time()
-    print('- The total running time of k-mer extraction is ',str(end-start),' s\n')
+    sys.stderr.write(f'- The total running time of k-mer extraction is {end - start:.2f}s\n')
     start = time.time()
 
     # leaf nodes check
@@ -410,7 +413,8 @@ def build_tree(arg):
                 check_waitlist.append(i[0])
             for i in fna_mapping:
                 if(i not in Lv):
-                    kmer_index = extract_kmers(fna_mapping[i], fna_path, ksize, kmer_index_dict, kmer_index, Lv, spec, tree_dir, alpha_ratio, i)
+                    kmer_index = extract_kmers(fna_mapping[i], fna_path, ksize, kmer_index_dict,
+                                               kmer_index, Lv, spec, tree_dir, alpha_ratio, i)
         higher_union = defaultdict(set)
         for i in check_waitlist:
             diff, diff_nodes = get_leaf_union(depths[i], higher_union, depths_mapping, Lv, spec, i)
@@ -419,8 +423,7 @@ def build_tree(arg):
                 kmer_t = kmer_t - Lv[j.identifier]
             for j in diff_nodes:
                 kmer_t = kmer_t - spec[j.identifier]
-            print(str(i.identifier) + " checking", end = "\t")
-            print(len(kmer_t))
+            sys.stderr.write(f'{i.identifier} checking\t{len(kmer_t)}\n')
             if(len(kmer_t) < minsize):
                 leaves_check.append(i)
         if(len(leaves_check)>0):
@@ -437,7 +440,7 @@ def build_tree(arg):
             column_index = cls_dist[row_index].argmax()
             leaf_b = mapping.inv[column_index]  # (leaf_a, leaf_b)
             temp2 = fna_mapping[leaf_a] | fna_mapping[leaf_b]
-            print(cluster_id, leaf_a, leaf_b, temp2)
+            sys.stderr.write('\t'.join([str(x) for x in [cluster_id, leaf_a, leaf_b, temp2]]) + '\n')
             del fna_mapping[leaf_a], fna_mapping[leaf_b]
             if(leaf_a in Lv):
                 del Lv[leaf_a], spec[leaf_a]
@@ -491,41 +494,41 @@ def build_tree(arg):
     all_identifier.sort()
 
     # save2file
-    f = open(tree_dir+"/tree_structure.txt", "w")
-    os.system("mkdir "+tree_dir+"/kmers")
-    os.system("mkdir "+tree_dir+"/overlapping_info")
+    f = open(os.path.join(tree_dir, 'tree_structure.txt'), "w")
+    os.makedirs(os.path.join(tree_dir, 'kmers'), exist_ok=True)
+    os.makedirs(os.path.join(tree_dir, 'overlapping_info'), exist_ok=True)
     for nn in all_identifier:
         i = id_mapping.inv[nn]
-        f.write("%d\t"%id_mapping[i])
+        f.write(f"{id_mapping[i]}\t")
         if(i == all_nodes[0].identifier):
             f.write("N\t")
         else:
-            f.write("%d\t"%id_mapping[tree.parent(i).identifier])
+            f.write(f"{id_mapping[tree.parent(i).identifier]}\t")
         if(nn in leaves_identifier):
             f.write("N\t")
         else:
             [child_a, child_b] = tree.children(i)
-            f.write("%d %d\t"%(id_mapping[child_a.identifier], id_mapping[child_b.identifier]))
+            f.write(f"{id_mapping[child_a.identifier]} {id_mapping[child_b.identifier]}\t")
         if(len(fna_mapping[i]) == 1):
             temp = list(fna_mapping[i])[0]
             temp = fna_seq.inv[temp]
-            f.write("%s"%temp)
+            f.write(f"{temp}")
         f.write("\n")
     f.close()
-    f = open(tree_dir+"/hclsMap_95_recls.txt", "w")
+    f = open(os.path.join(tree_dir, 'hclsMap_95_recls.txt'), "w")
     for nn in leaves_identifier:
         i = id_mapping.inv[nn]
-        f.write("%d\t%d\t"%(nn, len(fna_mapping[i])))
+        f.write(f"{nn}\t{len(fna_mapping[i])}\t")
         temp1 = list(fna_mapping[i])
         for j in temp1:
             temp = fna_seq.inv[j]
             if(j == temp1[-1]):
-                f.write("%s\n"%temp)
+                f.write(f"{temp}\n")
             else:
-                f.write("%s,"%temp)
+                f.write(f"{temp},")
     f.close()
     end = time.time()
-    print('- The total running time of re-clustering is ',str(end-start),' s\n')
+    sys.stderr.write(f'- The total running time of re-clustering is {end - start:.2f}s\n')
     start = time.time()
 
     # build indexing structure
@@ -545,7 +548,7 @@ def build_tree(arg):
         ancestor[i.identifier] = ancestor[tree.parent(i.identifier).identifier].copy()
         ancestor[i.identifier].add(i.identifier)
     for i in reversed(all_nodes):
-        print(str(id_mapping[i.identifier]) + " k-mer removing...")
+        sys.stderr.write(f"{id_mapping[i.identifier]} k-mer removing...\n")
         if(i in leaves):
             uniq_temp[i.identifier] = Lv[i.identifier]
             descendant_leaves[i.identifier].add(i.identifier)
@@ -560,7 +563,7 @@ def build_tree(arg):
     all_nodes_id = set(id_mapping.keys())
     # remove overlapping
     for i in reversed(all_nodes):
-        print(str(id_mapping[i.identifier]) + " k-mer set building...")
+        sys.stderr.write(f"{id_mapping[i.identifier]} k-mer set building...\n")
         # no difference with sibling, subtree and ancestors
         if(i == all_nodes[0]):
             kmer_t = uniq_temp[i.identifier]
@@ -585,13 +588,13 @@ def build_tree(arg):
                 kmer_t = kmer_t - spec[k]
         if(len(kmer_t) < minsize and overload_label==0):
             rebuilt_nodes.append(i)
-            print("%d waiting for reconstruction..." % id_mapping[i.identifier])
+            sys.stderr.write(f"{id_mapping[i.identifier]} waiting for reconstruction...\n")
         else:
             if(len(kmer_t) > maxsize):
                 kmer_t = set(random.sample(kmer_t, maxsize))
-            f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
+            f = open(os.path.join(tree_dir, f"kmers{id_mapping[i.identifier]}"), "w")
             for j in kmer_t:
-                f.write("%d "%j)
+                f.write(f"{j} ")
             f.close()
             length[i] = len(kmer_t)
             kmerlist = kmerlist | kmer_t
@@ -605,7 +608,7 @@ def build_tree(arg):
     for i in leaves:
         del_label[i.identifier] = [0, 0]
     for i in rebuilt_nodes:
-        print(str(id_mapping[i.identifier]) + " k-mer set rebuilding...")
+        sys.stderr.write(f"{id_mapping[i.identifier]} k-mer set rebuilding...\n")
         kmer_t = get_intersect(intersection, descendant_leaves[i.identifier], Lv, del_label, i.identifier)
         diff = get_diff(higher_union, descendant_leaves, depths, all_nodes, i, Lv, spec, del_label)
         for j in diff:
@@ -626,7 +629,7 @@ def build_tree(arg):
                 #if j not in temp:continue
                 kmer_t.add(temp[j][0])
         nkmer = {}
-        f = open(tree_dir+"/kmers/"+str(id_mapping[i.identifier]), "w")
+        f = open(os.path.join(tree_dir, f"kmers{id_mapping[i.identifier]}"), "w")
         index = 0
         for j in kmer_t:
             f.write("%d "%j)
@@ -646,35 +649,35 @@ def build_tree(arg):
         delete(Lv, spec, del_label)
 
     for i in overlapping:
-        f = open(tree_dir+"/overlapping_info/"+str(i), "w")
-        f1 = open(tree_dir+"/overlapping_info/"+str(i)+"_supple", "w")
+        f = open(os.path.join(tree_dir, f"overlapping_info{i}"), "w")
+        f1 = open(os.path.join(tree_dir, f"overlapping_info{i}_supple"), "w")
         count = -1
         for j in overlapping[i]:
             if(len(overlapping[i])!=0):
-                f.write("%d\n"%j)
+                f.write(f"{j}\n")
                 for k in overlapping[i][j]:
-                    f.write("%d "%k)
+                    f.write(f"{k} ")
                 f.write("\n")
                 count += 2
-                f1.write("%d %d\n"%(j, count))
+                f1.write(f"{i} {count}\n")
         f.close()
         f1.close()
 
     # final saving
-    f = open(tree_dir+"/reconstructed_nodes.txt", "w")
+    f = open(os.path.join(tree_dir, "reconstructed_nodes.txt"), "w")
     for i in rebuilt_nodes:
-        f.write("%d\n"%id_mapping[i.identifier])
+        f.write(f"{id_mapping[i.identifier]}\n")
     f.close()
 
-    f = open(tree_dir+"/node_length.txt", "w")
+    f = open(os.path.join(tree_dir, "node_length.txt"), "w")
     for nn in all_identifier:
         i = id_mapping.inv[nn]
-        f.write("%d\t%d\n"%(nn, length[tree[i]]))
+        f.write(f"{nn}\t{length[tree[i]]}\n")
     f.close()
 
     kmer_mapping = {}
     index = 0
-    f = open(tree_dir+"/kmer.fa", "w")
+    f = open(os.path.join(tree_dir, "kmer.fa"), "w")
     for i in kmerlist:
         f.write(">1\n")
         f.write(kmer_index_dict.inv[i])
@@ -684,21 +687,21 @@ def build_tree(arg):
     f.close()
 
     # change index
-    files = os.listdir(tree_dir+"/kmers")
+    files = os.listdir(os.path.join(tree_dir, "kmers"))
     for i in files:
-        f = open(tree_dir+"/kmers/"+i, "r")
+        f = open(os.path.join(tree_dir, f"kmers{i}"), "r")
         lines = f.readlines()
         if(len(lines) == 0):
             continue
         d = lines[0].rstrip().split(" ")
         d = map(int, d)
-        f = open(tree_dir+"/kmers/"+i, "w")
+        f = open(os.path.join(tree_dir, f"kmers{i}"), "w")
         for j in d:
             f.write("%d "%kmer_mapping[j])
         f.close()
 
     end = time.time()
-    print('- The total running time of tree-based indexing struture building is ',str(end-start),' s\n')
+    sys.stderr.write(f'- The total running time of tree-based indexing structure building is {end - start:.2f}s\n')
 
 
 def cal_cls_dist(dist, fna_i, fna_j):

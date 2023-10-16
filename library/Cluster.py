@@ -22,7 +22,7 @@ def construct_matrix(input_fa):
 			o.write(os.path.join(input_fa, filename) + '\n')
    
 	dash_exe = os.path.split(os.path.abspath(__file__))[0]+'/dashing_s128'
-	cmd = f'{dash_exe} dist  -p10 -k31 -O distance_matrix.txt -o size_estimates.txt -Q  {path_file} -F {path_file}'
+	cmd = f'{dash_exe} dist  -p 10 -k 31 -O distance_matrix.txt -o size_estimates.txt -Q {path_file} -F {path_file}'
 	run_job(cmd)
 	nn = rebuild_matrix('distance_matrix.txt')
 	os.unlink('genome_path_tem.txt')
@@ -31,10 +31,10 @@ def construct_matrix(input_fa):
 				
 def rebuild_matrix(input_m):
 	fn = os.path.basename(input_m)
-	pre = re.sub('\..*','',fn)
+	pre = re.sub('\..*', '', fn)
 	nn = pre + '_rebuild.txt'
-	f = open(input_m,'r')
-	o = open(nn,'w+')
+	f = open(input_m, 'r')
+	o = open(nn, 'w+')
 	line = f.readline().strip()
 	ele = line.split('\t')[1:]
 	for e in ele:
@@ -54,7 +54,7 @@ def rebuild_matrix(input_m):
 
 
 def hcls(input_m, method, cutoff):
-	o = open('tem_hier.R','w+')
+	o = open('tem_hier.R', 'w+')
 	o.write(f"""
          x <- read.table(\"{input_m}\", header=T, row.names=1)
          d <- as.dist(as(x, \"matrix\"))
@@ -66,7 +66,7 @@ def hcls(input_m, method, cutoff):
 	run_job('Rscript tem_hier.R > cls_res.txt')
 	os.unlink('tem_hier.R')
 	a=[]
-	with open('cls_res.txt','r') as f:
+	with open('cls_res.txt', 'r') as f:
 		while True:		
 			line=f.readline().strip()
 			if not line:
@@ -92,18 +92,18 @@ def hcls(input_m, method, cutoff):
 				name=ele
 		else:
 			ele=l.split()
-			if len(ele)==1:
-				d[name][l]=''
+			if len(ele) == 1:
+				d[name][l] = ''
 				pre=os.path.split(l)[1]
 				pre=re.split('\.',pre)[0]
-				dmap[name][pre]=''
+				dmap[name][pre] = ''
 			else:
 				i=0
 				for e in ele:
-					d[name[i]][e]=''
+					d[name[i]][e] = ''
 					pre=os.path.split(e)[1]
 					pre=re.split('\.',pre)[0]
-					dmap[name[i]][pre]=''
+					dmap[name[i]][pre] = ''
 					i+=1
 	#print(int(100-float(cutoff)*100))
 	txt_file = 'hclsMap_' + str(int(100-float(cutoff)*100)) + '.txt'
