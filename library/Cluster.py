@@ -95,16 +95,16 @@ def hcls(input_m, method, cutoff):
 			if len(ele)==1:
 				d[name][l]=''
 				pre=os.path.split(l)[1]
-				#pre=re.split('\.',pre)[0]
-				pre = os.path.splitext(pre)[0]
+				pre=re.split('\.',pre)[0]
+				#pre = os.path.splitext(pre)[0]
 				dmap[name][pre]=''
 			else:
 				i=0
 				for e in ele:
 					d[name[i]][e]=''
 					pre=os.path.split(e)[1]
-					#pre=re.split('\.',pre)[0]
-					pre = os.path.splitext(pre)[0]
+					pre=re.split('\.',pre)[0]
+					#pre = os.path.splitext(pre)[0]
 					dmap[name[i]][pre]=''
 					i+=1
 	#print(int(100-float(cutoff)*100))
