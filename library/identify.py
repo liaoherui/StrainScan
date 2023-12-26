@@ -88,7 +88,7 @@ def jellyfish_count(fq_path, db_dir):
     f = open(db_dir+"/kmer.fa", "r")
     lines = f.readlines()
     for i in range(0, int(len(lines)/2)):
-        kmer_index_dict[lines[i*2+1].rstrip()] = i
+        kmer_index_dict[lines[i*2+1].rstrip().upper()] = i
     f.close()
     match_results = {}
     f = open(jf_res_path, "r")
