@@ -104,7 +104,7 @@ Option 3 - Or, you can install all dependencies of StrainScan mannually and then
 `chmod 755 library/dashing_s128`<BR/>
 
 ## Pre-built databases download
-The table below offers information about the pre-built databases of 6 bacterial species used in the paper. Users can download these databases and use them to identify strains directly.
+The table below offers information about the pre-built databases of 6 bacterial species used in the paper and 2 additional bacterial species. Users can download these databases and use them to identify strains directly.
 
 Species   |	Source  | Number of Strains |	Number of Clusters |	Download link
 ------------ | -------------| ------------- | ------------- | ------------- 
