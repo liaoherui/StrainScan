@@ -51,7 +51,10 @@ def get_node_label(db_dir, tree):
         length[int(d[0])] = int(d[1])
     for node in tree.all_nodes():   # test
         if(length[node.identifier] < 1000):
-            node.data[0] = 0
+            if(node not in tree.leaves()):
+                node.data[0] = 0
+            else:
+                node.data[0] = 1
         elif(length[node.identifier] < 3000):
             node.data[0] = 1
         else:
