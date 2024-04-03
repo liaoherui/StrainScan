@@ -70,6 +70,7 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 
 		kcount=0
 		intervals=0
+		'''
 		if len(resd)>uknum:
 			# We will sample unique k-mers according to the position and given value
 			if uknum==0:continue
@@ -85,14 +86,16 @@ def unique_kmer_out_inside_cls(d,k,dlabel,out_dir,uknum):
 				kid_match[rev_kmr]=knum
 				kmatrix[knum][s-1]=1
 				knum+=1
+    		'''
 
-		else:
+		if True:
 			for kmr in resd:
 				#uk_count+=1
 				kcount+=1
 				kid_match[kmr]=knum
 				kmatrix[knum][s-1]=1
 				knum+=1
+				if kcount>uknum:break
 		print('Log:',ids_match[s],kcount,len(resd),intervals)
 	tem=[]
 	head=sorted(head)
