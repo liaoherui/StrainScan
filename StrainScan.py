@@ -217,7 +217,7 @@ def main():
 		l2=1
 
 
-	#cls_dict.update(uniq_strain)
+	print(cls_dict)
 	if len(cls_dict)==0:
 		print('Warning: No clusters can be detected!')
 		exit()
